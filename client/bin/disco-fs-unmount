@@ -1,0 +1,24 @@
+#!/bin/bash
+
+DISCOROOT=/var/disco/testfs
+
+mount | grep $DISCOROOT > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "disco chroot is not mounted"
+    exit 1
+fi
+
+umount ${DISCOROOT}/chroot
+umount ${DISCOROOT}/proc/proc
+umount ${DISCOROOT}/sysfs/sys
+umount ${DISCOROOT}/rootfs
+mount | grep $DISCOROOT > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    # Sometimes required
+    umount ${DISCOROOT}/rootfs
+fi
+
+rm -rf ${DISCOROOT}/scratchfs/* ${DISCOROOT}/scratchfs/.unionfs
+rm -rf ${DISCOROOT}/dev/*
+
+exit 0

@@ -1,0 +1,76 @@
+#!/bin/bash
+
+DISCOCFG=/etc/disco
+DISCOROOT=/var/disco/testfs
+
+mount | grep $DISCOROOT >/dev/null 2>&1
+
+if [ $? -eq 0 ]; then
+    echo "disco chroot is already mounted, please exec disco-fs-unmount and try again."
+    exit 1
+fi
+
+# Cleanup old junk
+rm -rf ${DISCOROOT}/scratchfs
+rm -rf ${DISCOROOT}/restricted/bin/*
+
+# Prepare all the mountpoint directories
+mkdir -p ${DISCOROOT}/chroot
+mkdir -p ${DISCOROOT}/execs/bin
+mkdir -p ${DISCOROOT}/proc/proc
+mkdir -p ${DISCOROOT}/sysfs/sys
+mkdir -p ${DISCOROOT}/rootfs
+mkdir -p ${DISCOROOT}/scratchfs
+mkdir -p ${DISCOROOT}/dev/dev
+mkdir -p ${DISCOROOT}/restricted/bin
+
+# Setup all the commands for the bash restricted execution environment
+
+mkdir -p ${DISCOCFG}/restricted.d
+for file in $(cat ${DISCOCFG}/restricted.d/* 2>/dev/null | grep -v "^#")
+do
+    mkdir -p ${DISCOROOT}/restricted/bin$(echo $file | dirname $file)
+    ln -s $file ${DISCOROOT}/restricted/bin/$file
+done
+
+# Setup some more restricted execution stuff, but only if we actually have $NOOP
+
+if [ "$NOOP" != "" ]; then
+    # Here we play a pretty lame trick on the user. /bin/bash will always exist 
+    # (unfortunately), but we can force everything else to our rbash wrapper,
+    # forcing restricted execution. The user can get around this by calling
+    # /bin/bash directly, but that's on the user. TNMP, RTFM!
+    ln -s /bin/bash ${DISCOROOT}/restricted/bin/rbash
+    for dir in /usr/bin /usr/local/bin /usr/sbin; 
+    do
+	mkdir -p ${DISCOROOT}/restricted/${dir}
+	echo "#!/bin/bash --restricted\neval \$@" > ${DISCOROOT}/restricted/${dir}/bash
+	chmod +x ${DISCOROOT}/restricted/${dir}/bash
+    done
+fi
+
+# We need SOME special files in /dev like /dev/null, so make them here
+
+mknod ${DISCOROOT}/dev/dev/null c 1 3
+chmod 666 ${DISCOROOT}/dev/dev/null
+
+# Mount all the (real filesystem) layers individually
+
+mount --bind -o ro / ${DISCOROOT}/rootfs 2>&1 | grep -v "seems to be mounted read-write"
+mount -o remount,ro ${DISCOROOT}/rootfs
+mount -t proc -o ro none ${DISCOROOT}/proc/proc
+mount -t sysfs -o ro none ${DISCOROOT}/sysfs/sys
+
+# Setup filesystem layers. The read/write ones go on the top, with scratchfs ALWAYS on top.
+FSLAYERS="${DISCOROOT}/scratchfs=rw"
+FSLAYERS="${FSLAYERS}:${DISCOROOT}/dev=rw"
+FSLAYERS="${FSLAYERS}:${DISCOROOT}/restricted=ro"
+FSLAYERS="${FSLAYERS}:${DISCOROOT}/execs=ro"
+FSLAYERS="${FSLAYERS}:${DISCOROOT}/proc=ro"
+FSLAYERS="${FSLAYERS}:${DISCOROOT}/sysfs=ro"
+FSLAYERS="${FSLAYERS}:${DISCOROOT}/rootfs=ro"
+
+# Here we go
+unionfs -o cow,dev,dirs=$FSLAYERS ${DISCOROOT}/chroot
+
+exit 0

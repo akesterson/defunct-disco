@@ -1,0 +1,41 @@
+#!/bin/bash
+
+OLDPWD=$(pwd)
+
+DISCOROOT=/var/disco/testfs
+
+COLOR_CYAN=$(echo -e '\033[0;36;40m'); 
+COLOR_MAGENTA=$(echo -e '\033[0;35;40m');
+COLOR_GREEN=$(echo -e '\033[0;32;40m');
+COLOR_YELLOW=$(echo -e '\033[0;33;40m');
+COLOR_BLUE=$(echo -e '\033[0;34;40m');
+COLOR_RED=$(echo -e '\033[0;31;40m');
+COLOR_NORMAL=$(echo -e '\033[0m');
+
+cd $DISCOROOT
+
+diff -r ./rootfs ./scratchfs |\
+    grep -v "^Only in ./rootfs" |\
+    sed s/"^Only in \.\/scratchfs\(.*\): \(.*\)"/"info: File: created \1\/\2 : (CONTENT)"/g |\
+    sed s/"\/\/"/"\/"/g |\
+    grep -v "File: created /.unionfs" |\
+    sed s/"^Binary files .\/rootfs\(.*\) and .\/scratchfs.*"/"info: File: modified \1 : (OLDMD5SUM) => (NEWMD5SUM)"/g |\
+    sed s/"^diff -r .\/rootfs\(.*\) .\/scratchfs\(.*\)"/"info: File: modified \1 :"/g > /tmp/$$.discofsdiff
+
+find ./scratchfs/.unionfs -iname "*_HIDDEN~" |\
+    sed s/"^.\/scratchfs\/.unionfs\(.*\)_HIDDEN~"/"info: File: deleted \1"/g >> /tmp/$$.discofsdiff
+
+#Find the permissions/timestamp diffs from rsync
+rsync -ani ./scratchfs/* ./rootfs/ | grep -v .unionfs
+
+
+# Swap out the (CONTENT) and (MD5SUM) hashes for actual content and md5s
+cat /tmp/$$.discofsdiff | python ${OLDPWD}/disco-fs-fixup.py > /tmp/$$.newfile
+mv /tmp/$$.newfile n/tmp/$$.discofsdiff
+
+
+cat /tmp/$$.discofsdiff |\
+    sed s/"^info:\(.*\)"/"${COLOR_CYAN}info:\1${COLOR_NORMAL}"/g
+    #sed s/"^warning: \(.*\)"/"${COLOR_YELLOW}warning: \1${COLOR_NORMAL}"/g
+
+cd $OLDPWD

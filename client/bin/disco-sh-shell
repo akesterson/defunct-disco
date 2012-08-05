@@ -1,0 +1,15 @@
+#!/bin/bash
+
+DISCOROOT=/var/disco/testfs
+
+mount | grep $DISCOROOT >/dev/null 2>&1
+if [ $? -ne 0 ]; then
+    ./disco-fs-mount
+fi
+if [ "$NOOP" != "" ]; then
+    chroot ${DISCOROOT}/chroot /bin/rbash
+else
+    chroot ${DISCOROOT}/chroot /bin/bash 
+fi
+./disco-fs-unmount
+exit $?
