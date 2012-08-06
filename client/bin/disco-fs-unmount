@@ -10,24 +10,20 @@ fi
 
 umount ${DISCOROOT}/chroot
 umount ${DISCOROOT}/proc/proc
-
-#Unmount the proc/sys mirrors if they were mounted
-mount | grep " on /${DISCOROOT}/proc/proc" >/dev/null 2>&1
-if [ $? -eq 0 ]; then
-    mount -t proc -o ro none ${DISCOROOT}/proc/proc
-    mount -t sysfs -o ro none ${DISCOROOT}/sysfs/sys
-fi
-mount | grep " on /${DISCOROOT}/sysfs/sys" >/dev/null 2>&1
-if [ $? -eq 0 ]; then
-    mount -t sysfs -o ro none ${DISCOROOT}/sysfs/sys
-fi
-
-umount ${DISCOROOT}/sysfs/sys
 umount ${DISCOROOT}/rootfs
 mount | grep $DISCOROOT > /dev/null 2>&1
 if [ $? -eq 0 ]; then
     # Sometimes required
     umount ${DISCOROOT}/rootfs
+fi
+#Unmount the proc/sys mirrors if they were mounted
+mount | grep " on ${DISCOROOT}/proc/proc" >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+    mount -t proc -o ro none ${DISCOROOT}/proc/proc
+fi
+mount | grep " on ${DISCOROOT}/sysfs/sys" >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+    mount -t sysfs -o ro none ${DISCOROOT}/sysfs/sys
 fi
 
 rm -rf ${DISCOROOT}/scratchfs/* ${DISCOROOT}/scratchfs/.unionfs
