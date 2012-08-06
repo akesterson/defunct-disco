@@ -150,7 +150,9 @@ are enabled). Templates have access to all client parameters via the disco-param
 Definition Files
 =====
 
-Definition files are just a series of files that say where to rsync files, templates, and scripts from.
+Definition files are just a series of files that say what files on the disk should be templated,
+or executed as scripts, for this module; as well as defining module-level parameters, and dependency
+requirements, for this module.
 
 Definition files can use node parameters via the $(disco-param /path/to/node/parameter) syntax.
 This interpolation is done on the client side, so the server does not execute any code for this.
@@ -165,7 +167,6 @@ A disco module (also called a "disco ball" for fun) looks like this:
     MODULE
     ├__ defs
     ___ ___ requires
-    │__ ├── files
     │__ ├── scripts
     │__ └── templates
     ___ ___ parameters
@@ -178,6 +179,8 @@ reached via rsync; however, it is generally considerd good form to include all t
 to your module, inside its disco ball. The disco ball is then placed in an accessible location
 on the rsync server, and the disco client will pull all modules, files, scripts, and templates
 relevant to its execution, and run them.
+
+ALL MODULE FILES, SCRIPTS, AND TEMPLATES ARE DELIVERED RELATIVE TO / ON THE CLIENT.
 
 MODULE/defs/requires
 =====
