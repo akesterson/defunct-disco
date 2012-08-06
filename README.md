@@ -189,24 +189,12 @@ This file lists, one name per line, the names of other modules that must be inst
 node in order for this module to install correctly. This is used to create a dependency graph,
 and thereby determine execution order.
 
-MODULE/defs/files
-=====
-
-Consists of a number of rsync locations to pull files from. For each line of the file, the format is:
-
-    SOURCE_PATH[:DEST_ROOT]
-
-... SOURCE_PATH is a rsync+ssh URI passed directly to the rsync command (as defined in parameter 
-disco/client/cmds/rsync). DEST_ROOT is optional; if not present, all files retrieved are rooted into /.
-You can use this to change this behavior to root incoming files to a different LOCAL PATH; remote paths
-are not supported!
-
 MODULE/defs/templates
 =====
 
-This file has an identical syntax to MODULE/defs/files, except that it lists templates, not files.
-These files are fetched exactly like the others, but once fetched, they are templated and replaced with
-the template output.
+This file contains a list of (local) paths to files that should be treated as templates; executed in
+the restricted bash NOOP environment, their output captured, and the original script on disk replaced
+with the template definition.
 
 MODULE/defs/scripts
 =====
@@ -247,8 +235,8 @@ DISCO is a work in progress so not all of it is complete, but the general idea i
 
     - DISCO client rsyncs its node configuration parameters from the server
     - DISCO client performs topological sort of required modules, and for each one:
-        - fetch all files
-        - fetch all templates
+        - fetch all files, templates and scripts
+        - resolve all templates
             - resolve all templates
         - execute all scripts
         - report all differences
@@ -258,6 +246,8 @@ DISCO is able to easily report all differences by executing all scripts and temp
 restricted bash execution environment, and on top of a read-only unionfs with a scratchpad on 
 the top. If the NOOP flag is set, then all the same operations are performed, but the restricted
 environment stops all potentially dangerous commands at the reporting level, and the fetched files
-are not merged out of the scratchpad onto the live filesystem.
+are not merged out of the scratchpad onto the live filesystem. The scratchpad is also not merged if
+there is a failure during live (non-NOOP) execution, to prevent from locking the system in a
+non-functioning state.
 
 See the client disco-fs-* and disco-exec-* scripts for more information on how this is done.
