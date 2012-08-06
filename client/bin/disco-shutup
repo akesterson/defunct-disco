@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# This is a convenience to the user of restricted shells, so they can redirect stdout to /dev/null
+# Use like [ COMMAND | disco-shutup] ... doesn't do much for stderr, sorry.
+
+cat > /dev/null

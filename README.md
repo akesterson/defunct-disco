@@ -46,13 +46,26 @@ Is DISCO noop friendly (report all incoming changes)?
 Yes, DISCO is noop friendly, with a caveat: The way we implement noop is through restricted bash
 shells. This is generally sufficient, and already proven and simple. 
 
-There are some questions around "is the NOOP really secure then?" Well, yes and no.
+There are some questions around "is the NOOP really secure then?" Well, yes and no. 
+The disco NOOP, like any (bash --restricted) shell, can be broken out of without a whole lot of work.
+Especially considering that the restricted shell runs as root. In this case, the disco NOOP,
+much like a barbed wire fence at a buffalo farm, is not expected to ACTUALLY keep anyone inside -
+it's just a gentle suggestion that you please not run all over the farm breaking things. 
 
 Unlike puppet's noop, which is implemented via a guaranteed safe DSL, DISCO assumes an
 existing trust network between your disco server and disco client; the goal of DISCO noop is to
-prevent well-meaning trusted sysadmins from doing really stupid things. It does not try
+prevent well-meaning trusted sysadmins from accidentally doing stupid things. It does not try
 to secure your systems from malicious code. That security layer is moved up, onto the maintainer,
 who must verify the sanity of all code they are sending to client machines.
+
+Specifically: Since DISCO use a unionfs and chroot for the restricted bash shell, I am confiden
+that your physical disk is safe from accidental modifications (everything is captured on the
+scratchpad, with the exception of writes to /proc and /sys, which are read-only and simply discarded).
+The bit that I can't promise is that one of your module maintainers won't find a way to kill a
+running process, or signal/restart a service in a way that DISCO can't trap/log/noop it. 
+This may or may not be a big deal to you, but should be a consideration before you start 
+migrating to DISCO - how much do you trust your module maintainers?
+
 
 How do you establish the trust relationship?
 =====

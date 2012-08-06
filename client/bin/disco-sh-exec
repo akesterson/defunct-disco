@@ -8,12 +8,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Strip out any shebang and put the script in the root
-mkdir -p ${DISCOROOT}/execs/$(dirname $2)
-cat $1 | sed s/'^#!.*'/''/g > ${DISCOROOT}/execs/$2
-if [ "$NOOP" != "" ]; then
-    chroot ${DISCOROOT}/chroot /bin/bash --restricted $2
-else
-    chroot ${DISCOROOT}/chroot /bin/bash $2
-fi
-./disco-fs-unmount
+mkdir -p ${DISCOROOT}/restricted/$(dirname $2)
+cat $1 | sed s/'^#!.*'/''/g > ${DISCOROOT}/restricted/$2
+$(dirname $0)/disco-sh-shell ${DISCOROOT}/restricted/$2
 exit $?

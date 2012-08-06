@@ -4,12 +4,13 @@ DISCOROOT=/var/disco/testfs
 
 mount | grep $DISCOROOT >/dev/null 2>&1
 if [ $? -ne 0 ]; then
-    ./disco-fs-mount
+    echo "disco filesystem is not mounted"
+    exit 0
 fi
+
 if [ "$NOOP" != "" ]; then
-    chroot ${DISCOROOT}/chroot /bin/rbash
+    chroot ${DISCOROOT}/chroot /bin/env PATH=${DISCOROOT}/restricted/bin /bin/bash --login --restricted $@
 else
-    chroot ${DISCOROOT}/chroot /bin/bash 
+    chroot ${DISCOROOT}/chroot /bin/bash --login $@
 fi
-./disco-fs-unmount
 exit $?
