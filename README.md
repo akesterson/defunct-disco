@@ -243,11 +243,13 @@ DISCO is a work in progress so not all of it is complete, but the general idea i
     - report overall success or failure (any piece of any module failing indicates failure)
 
 DISCO is able to easily report all differences by executing all scripts and templates inside a 
-restricted bash execution environment, and on top of a read-only unionfs with a scratchpad on 
-the top. If the NOOP flag is set, then all the same operations are performed, but the restricted
-environment stops all potentially dangerous commands at the reporting level, and the fetched files
-are not merged out of the scratchpad onto the live filesystem. The scratchpad is also not merged if
-there is a failure during live (non-NOOP) execution, to prevent from locking the system in a
-non-functioning state.
+restricted bash chroot, and on top of a read-only unionfs with a scratchpad on the top,
+some custom twiddly bits in the middle, and the existing running filesystem at the bottom (read-only). 
+The scratchpad is not merged if there is a failure during live (non-NOOP) execution, to prevent
+from locking the system in a non-functioning state.
+
+If the NOOP flag is set, then all the same operations are performed, but the restricted
+environment stops all potentially dangerous commands at the reporting level (presumably), and
+the fetched files are not merged out of the scratchpad onto the live filesystem. 
 
 See the client disco-fs-* and disco-exec-* scripts for more information on how this is done.
