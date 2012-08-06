@@ -64,18 +64,18 @@ off of parameters. This lives on the SERVER, not the client.
 
 From the server perspective, the parameters tree looks like:
 
-/var/disco/parameters
-___ ___ disco
-___ ___ ___ client
-___ ___ ___ ___ cmds
-___ ___ ___ ___ ___ rsync
-___ ___ server
-___ ___ ___ uri
-___ ___ NODE_NAME
-___ ___ ___ modules
-___ ___ ___ ___ ...
-___ ___ ___ parameters
-___ ___ ___ ___ ...
+    /var/disco/parameters
+    ___ ___ disco
+    ___ ___ ___ client
+    ___ ___ ___ ___ cmds
+    ___ ___ ___ ___ ___ rsync
+    ___ ___ server
+    ___ ___ ___ uri
+    ___ ___ NODE_NAME
+    ___ ___ ___ modules
+    ___ ___ ___ ___ ...
+    ___ ___ ___ parameters
+    ___ ___ ___ ___ ...
 
 Think of it like a large JSON document expressed as a filesystem, with the document keys the
 filenames, and the values being their contents. This format was chosen because it can be easily
@@ -92,18 +92,20 @@ operation, and is accessible as a filesystem tree (or the disco-param command wh
 bash wrapper). These parameters appear in /var/disco/parameters on the client and server, and 
 default values can be found there in the client/server install before the first run of the client.
 
-/disco/client/cmds/rsync : The rsync command to use when synching files. The source and destination
-        paths will be appended directly to this string.
-/disco/server/uri : The rsync URI from which to fetch module definitions.
-/disco/NODE_NAME/modules : This list defines the modules to install on a given node. 
-/disco/NODE_NAME/parameters : This tree defines all configuration parameters for the node not related to
-        any module in particular.
+    /disco/client/cmds/rsync : The rsync command to use when synching
+        files.
+    /disco/server/uri : The rsync URI from which to fetch module definitions.
+    /disco/NODE_NAME/modules : This list defines the modules to install 
+        on a given node. 
+    /disco/NODE_NAME/parameters : This tree defines all configuration 
+        parameters for the node not related to any module in particular.
 
 Some special parameters are provided to the client, that do not exist on the paramters tree until
 runtime:
 
-/disco/NODE_NAME/current_module : This parameter defines the full name of the current module, such that
-        a module definition file can access its personal parameters via without knowing its name, e.g.:
+    /disco/NODE_NAME/current_module : This parameter defines the full 
+        name of the current module, such that a module definition file 
+        can access its personal parameters via without knowing its name, e.g.:
         $(disco-param get /classes/$(disco-param get /current_module)/some/module/specific/path)
 
 How to deploy stuff
@@ -154,15 +156,15 @@ Module Layout
 
 A disco module (also called a "disco ball" for fun) looks like this:
 
-MODULE
-├── defs
-│__ ├── files
-│__ ├── scripts
-│__ └── templates
-___ ___ parameters
-├── files
-├── scripts
-└── templates
+    MODULE
+    ├__ defs
+    │__ ├── files
+    │__ ├── scripts
+    │__ └── templates
+    ___ ___ parameters
+    ├── files
+    ├── scripts
+    └── templates
 
 Your module can theoretically pull files, scripts, and templates from any location that can be
 reached via rsync; however, it is generally considerd good form to include all things relevant
@@ -175,7 +177,7 @@ MODULE/defs/files
 
 Consists of a number of rsync locations to pull files from. For each line of the file, the format is:
 
-SOURCE_PATH[:DEST_ROOT]
+    SOURCE_PATH[:DEST_ROOT]
 
 ... SOURCE_PATH is a rsync+ssh URI passed directly to the rsync command (as defined in parameter 
 disco/client/cmds/rsync). DEST_ROOT is optional; if not present, all files retrieved are rooted into /.
@@ -193,10 +195,10 @@ MODULE/defs/scripts
 =====
 
 This file simply lists the (local) location of commands to execute, for this module, once all scripts have
-been fetched, and all templates have been interpolated. They are executed, in order. One script failing
-will not stop other scripts from failing unless told to do so in the MODULE/defs/options parameters tree
-via the "disco/client/module/halt_on_failure" option. Otherwise, errors are reported, but all scripts will
-be executed regardless.
+been fetched, and all templates have been interpolated. The scripts cannot accept arguments. They are 
+executed, in order. One script failing will not stop other scripts from failing unless told to do so in the
+/MODULE_NAME/halt_on_failure parameter. Otherwise, errors are reported, but all scripts will be executed 
+regardless.
 
 MODULE/defs/parameters
 =====
