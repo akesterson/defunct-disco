@@ -54,6 +54,12 @@ prevent well-meaning trusted sysadmins from doing really stupid things. It does 
 to secure your systems from malicious code. That security layer is moved up, onto the maintainer,
 who must verify the sanity of all code they are sending to client machines.
 
+How do you establish the trust relationship?
+=====
+
+DISCO uses rsync(+ssh) with SSH keys, so the answer is, "we don't establish it" - SSH handles
+that for us by the server allowing or denying the key.
+
 How do you handle parameters (like puppet ENC, etc)?
 =====
 
@@ -207,3 +213,18 @@ Each module can define default parameters which will be made available to all cl
 These parameters will be merged together on the client at module fetch time, and any node-specific
 parameters will override any default parameters specified here (they are rsync'ed over the top of each
 other). These parameters will be rooted at /MODULE_NAME/... .
+
+Server Side Setup
+=====
+
+The only server side setup required for DISCO is to setup an rsyncd and sshd server. This is outside
+the purview of this README. 
+
+We would recommend setting up the rsync server to allow your DISCO clients (which MUST run as root),
+to come in on a non-priveleged, non-root account. You can still use rsync's module definitions with
+non-root users by setting up ~/.rsyncd in that user's home directory, and adding
+"--rsh 'ssh -l USER_NAME'" to your /disco/client/cmds/rsync parameter on the clients. This will
+allow you to specify your rsync locations in your module definitions as USER@HOST::MODULE_NAME instead
+of having to specify a filesystem path, will give you all the benefits of an SSH key trust relationship,
+and no concern of incoming root access to the server. (Note that this also prevents the often mysterious
+and troublesome SSL certificate issues associated with other CI systems.)
