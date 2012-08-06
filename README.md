@@ -189,13 +189,6 @@ This file lists, one name per line, the names of other modules that must be inst
 node in order for this module to install correctly. This is used to create a dependency graph,
 and thereby determine execution order.
 
-MODULE/defs/templates
-=====
-
-This file contains a list of (local) paths to files that should be treated as templates; executed in
-the restricted bash NOOP environment, their output captured, and the original script on disk replaced
-with the template definition.
-
 MODULE/defs/scripts
 =====
 
