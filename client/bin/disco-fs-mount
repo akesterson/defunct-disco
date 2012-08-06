@@ -4,7 +4,6 @@ DISCOCFG=/etc/disco
 DISCOROOT=/var/disco/testfs
 
 mount | grep $DISCOROOT >/dev/null 2>&1
-
 if [ $? -eq 0 ]; then
     echo "disco chroot is already mounted, please exec disco-fs-unmount and try again."
     exit 1
@@ -12,11 +11,13 @@ fi
 
 # Cleanup old junk
 rm -rf ${DISCOROOT}/scratchfs
-rm -rf ${DISCOROOT}/restricted/bin/*
+rm -rf ${DISCOROOT}/restricted/*
 
 # Prepare all the mountpoint directories
 mkdir -p ${DISCOROOT}/chroot
 mkdir -p ${DISCOROOT}/execs/bin
+mkdir -p ${DISCOROOT}/proc/proc
+mkdir -p ${DISCOROOT}/sysfs/sys
 mkdir -p ${DISCOROOT}/rootfs
 mkdir -p ${DISCOROOT}/scratchfs
 mkdir -p ${DISCOROOT}/dev/dev
@@ -34,17 +35,28 @@ done
 # Setup some more restricted execution stuff, but only if we actually have $NOOP
 
 if [ "$NOOP" != "" ]; then
+    for dir in $(echo $PATH | sed s/":"/" "/g)
+    do
+	for file in ${dir}/*
+	do
+	    if [ "$file" != "/bin/bash" ] && [ -x $file ] && [ ! -x ${DISCOROOT}/restricted${file} ] ; then
+		mkdir -p $(dirname ${DISCOROOT}/restricted/${file})
+		echo -e "#!/bin/bash\necho \"info: Would execute \$0 \$@\"" > ${DISCOROOT}/restricted${file}
+		chmod +x ${DISCOROOT}/restricted${file}
+	    fi
+	done
+    done
     # Here we play a pretty lame trick on the user. /bin/bash will always exist 
     # (unfortunately), but we can force everything else to our rbash wrapper,
     # forcing restricted execution. The user can get around this by calling
     # /bin/bash directly, but that's on the user. TNMP, RTFM!
-    ln -s /bin/bash ${DISCOROOT}/restricted/bin/rbash
-    for dir in /usr/bin /usr/local/bin /usr/sbin; 
-    do
-	mkdir -p ${DISCOROOT}/restricted/${dir}
-	echo "#!/bin/bash --restricted\neval \$@" > ${DISCOROOT}/restricted/${dir}/bash
-	chmod +x ${DISCOROOT}/restricted/${dir}/bash
-    done
+    #ln -s /bin/bash ${DISCOROOT}/restricted/bin/rbash
+    #for dir in /usr/bin /usr/local/bin /usr/sbin; 
+    #do
+    #	mkdir -p ${DISCOROOT}/restricted/${dir}
+    #	echo "#!/bin/bash --restricted\neval \$@" > ${DISCOROOT}/restricted/${dir}/bash
+    #	chmod +x ${DISCOROOT}/restricted/${dir}/bash
+    #done
 fi
 
 # We need SOME special files in /dev like /dev/null, so make them here
@@ -56,6 +68,16 @@ chmod 666 ${DISCOROOT}/dev/dev/null
 
 mount --bind -o ro / ${DISCOROOT}/rootfs 2>&1 | grep -v "seems to be mounted read-write"
 mount -o remount,ro ${DISCOROOT}/rootfs
+
+# Duplicate /proc and /sys if they already exist
+mount | grep " on /proc" >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+    mount -t proc -o ro none ${DISCOROOT}/proc/proc
+fi
+mount | grep " on /sys" >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+    mount -t sysfs -o ro none ${DISCOROOT}/sysfs/sys
+fi
 
 # Setup filesystem layers. The read/write ones go on the top, with scratchfs ALWAYS on top.
 FSLAYERS="${DISCOROOT}/scratchfs=rw"
