@@ -164,6 +164,7 @@ A disco module (also called a "disco ball" for fun) looks like this:
 
     MODULE
     ├__ defs
+    ___ ___ requires
     │__ ├── files
     │__ ├── scripts
     │__ └── templates
@@ -177,6 +178,13 @@ reached via rsync; however, it is generally considerd good form to include all t
 to your module, inside its disco ball. The disco ball is then placed in an accessible location
 on the rsync server, and the disco client will pull all modules, files, scripts, and templates
 relevant to its execution, and run them.
+
+MODULE/defs/requires
+=====
+
+This file lists, one name per line, the names of other modules that must be installed on this
+node in order for this module to install correctly. This is used to create a dependency graph,
+and thereby determine execution order.
 
 MODULE/defs/files
 =====
@@ -228,3 +236,25 @@ allow you to specify your rsync locations in your module definitions as USER@HOS
 of having to specify a filesystem path, will give you all the benefits of an SSH key trust relationship,
 and no concern of incoming root access to the server. (Note that this also prevents the often mysterious
 and troublesome SSL certificate issues associated with other CI systems.)
+
+The Gory Details ("how does it work?")
+=====
+
+DISCO is a work in progress so not all of it is complete, but the general idea is this:
+
+    - DISCO client rsyncs its node configuration parameters from the server
+    - DISCO client performs topological sort of required modules, and for each one:
+        - fetch all files
+        - fetch all templates
+            - resolve all templates
+        - execute all scripts
+        - report all differences
+    - report overall success or failure (any piece of any module failing indicates failure)
+
+DISCO is able to easily report all differences by executing all scripts and templates inside a 
+restricted bash execution environment, and on top of a read-only unionfs with a scratchpad on 
+the top. If the NOOP flag is set, then all the same operations are performed, but the restricted
+environment stops all potentially dangerous commands at the reporting level, and the fetched files
+are not merged out of the scratchpad onto the live filesystem.
+
+See the client disco-fs-* and disco-exec-* scripts for more information on how this is done.
