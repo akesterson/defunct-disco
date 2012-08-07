@@ -125,7 +125,7 @@ runtime:
     /disco/NODE_NAME/current_module : This parameter defines the full 
         name of the current module, such that a module definition file 
         can access its personal parameters via without knowing its name, e.g.:
-        $(disco-param get /classes/$(disco-param get /current_module)/some/module/specific/path)
+        $(disco-param get $(hostname)/classes/$(disco-param get $(hostname)/current_module)/some/module/specific/path)
 
 How to deploy stuff
 =====
@@ -147,18 +147,26 @@ DISCO uses bash for a scripting and templating engine. Instead of writing a cust
 you specify operations (like Puppet did) or utilize a higher level language (like Chef did with
 ruby), DISCO just uses the proven bash shell. 
 
+Every time your module is executed (e.g. every time the disco client executes), all of the scripts
+are executed. The order of execution is determined by alphabetically sorting the filenames, rc.d
+style; so naming your scripts as 00-fix_perms.sh, 10-correct_nodes.sh, etc, will cause them to be
+executed in the proper order. This prevents you from having to create a separate file that describes
+the execution order.
+
 Files vs Templates
 =====
 
 Files and Templates are delivered exactly the same way - via rsync.
 
 Files are static files who are delivered on to the disk, and no more operations are done to them.
+They are delivered with the same permissions that they are given by the rsync repository.
 
 Templates are bash scripts who are delivered on to the disk, and then they are executed, with their
 file contents replaced by their output. Templates are subject to all the same restrictions as scripts
 (be mindful of the constraints of $NOOP), and in addition, they are ALWAYS interpolated in the safe
 NOOP execution environment (file modifications will be discarded, and only rudimentary bash builtins
-are enabled). Templates have access to all client parameters via the disco-param command.
+are enabled). Templates have access to all client parameters via the disco-param command. Templates
+will end up with the same permissions that rsync gives them.
 
 Definition Files
 =====
@@ -178,14 +186,12 @@ Module Layout
 A disco module (also called a "disco ball" for fun) looks like this:
 
     MODULE
-    ├__ defs
-    ___ ___ requires
-    │__ ├── scripts
-    │__ └── templates
-    ___ ___ parameters
-    ├── files
-    ├── scripts
-    └── templates
+    ___ requires
+    ___ parameters
+    ___ steps
+    ├── files/
+    ├── scripts/
+    └── templates/
 
 Your module can theoretically pull files, scripts, and templates from any location that can be
 reached via rsync; however, it is generally considerd good form to include all things relevant
@@ -195,29 +201,24 @@ relevant to its execution, and run them.
 
 ALL MODULE FILES, SCRIPTS, AND TEMPLATES ARE DELIVERED RELATIVE TO / ON THE CLIENT.
 
-MODULE/defs/requires
+MODULE/requires
 =====
 
 This file lists, one name per line, the names of other modules that must be installed on this
 node in order for this module to install correctly. This is used to create a dependency graph,
 and thereby determine execution order.
 
-MODULE/defs/scripts
-=====
+This file is optional.
 
-This file simply lists the (local) location of commands to execute, for this module, once all scripts have
-been fetched, and all templates have been interpolated. The scripts cannot accept arguments. They are 
-executed, in order. One script failing will not stop other scripts from failing unless told to do so in the
-/MODULE_NAME/halt_on_failure parameter. Otherwise, errors are reported, but all scripts will be executed 
-regardless.
-
-MODULE/defs/parameters
+MODULE/parameters
 =====
 
 Each module can define default parameters which will be made available to all clients using the module.
 These parameters will be merged together on the client at module fetch time, and any node-specific
 parameters will override any default parameters specified here (they are rsync'ed over the top of each
 other). These parameters will be rooted at /MODULE_NAME/... .
+
+This tree is optional.
 
 Server Side Setup
 =====

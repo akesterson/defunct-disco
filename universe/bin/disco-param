@@ -1,0 +1,101 @@
+#!/bin/bash
+
+PARAMROOT=/var/disco/parameters
+
+function check_names_regex() {
+    echo "$1" | grep -E '^[a-zA-Z0-9_-\./]*$' >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+	echo "error: Invalid characters in pathname '$1'. Valid pathname characters are [a-zA-Z0-9_-\.\/]*." >&2
+	exit 1
+    fi
+    echo "$1" | grep "^/" >/dev/null 2>&1
+    if [ $? -eq 0 ]; then
+	echo "error: Pathnames cannot start with /" >&2
+	exit 1
+    fi
+}
+
+function disco_delete() {
+    if [ "$1" == "--help" ] || [ "$1" == "" ]; then
+	echo "info: disco-param delete [PATH_NAME] [optarg]... deletes parameter trees (recursively, if optarg is '-r'). PATH_NAME must not be empty." >&2
+	exit 1
+    fi
+    check_names_regex "$1" || exit 1
+    cd ${PARAMROOT}
+    if [ "$2" == "-r" ]; then
+        OUT=$(rm -rf ${1} 2>&1)
+    elif [ -d ${PARAMROOT}/${1} ]; then
+	# We want the error message from rmdir to have just the key path, not the param root in it
+	OUT=$(rmdir ${1} 2>&1)
+    else
+	OUT=$(rm -f ${1} 2>&1)
+    fi
+    if [ "$OUT" != "" ]; then
+	echo "error: $OUT" >&2
+	exit 1
+    fi
+    exit 0
+}
+
+function disco_set() {
+    if [ "$1" == "--help" ]; then
+	echo "info: disco-param set [PATH_NAME] [optarg] ... reads from stdin and sets PATH_NAME, unless [optarg] is {}, in which case a new hierarchy is made" >&2
+	exit 1
+    fi
+    check_names_regex "$1" || exit 1
+    mkdir -p $(dirname ${PARAMROOT}/${1})
+    if [ "$2" == "" ]; then
+	cat > ${PARAMROOT}/${1}
+    elif [ "$2" == "{}" ]; then
+	if [ -e ${PARAMROOT}/${1} ] && [ ! -d ${PARAMROOT}/${1} ]; then
+	    echo "error: ${1} : existing type '$(stat -c '%F' ${PARAMROOT}/${1})' cannot be overriden with type 'directory'." >&2
+	    exit 1
+	fi
+	mkdir -p ${PARAMROOT}/${1}
+    else
+	echo "error: Unknown optarg '$2'." >&2
+	exit 1
+    fi
+}
+
+function disco_get() {
+    if [ "$1" == "--help" ]; then
+	echo "info: disco-param get [PATH_NAME]" >&2
+	exit 1
+    fi
+    VARPATH=$(echo $1 | sed s/"^\/*"//g)
+    check_names_regex "$VARPATH" || exit 1
+    if [ -d ${PARAMROOT}/${VARPATH} ]; then
+	if [ "$RECURSING" == "" ]; then
+	    echo "${VARPATH} = {}"
+	else
+	    echo '{}'
+	fi
+	# Iterate over the path like a key/value dictionary
+	cd ${PARAMROOT}/${VARPATH}
+	for file in $(ls 2>/dev/null);
+	do
+	    echo "${VARPATH}/${file} = $(RECURSING='true' disco_get ${VARPATH}/${file})" | sed s/"^\/*"//g
+	done
+	exit 0
+    elif [ -e ${PARAMROOT}/${VARPATH} ]; then
+	cat ${PARAMROOT}/${VARPATH}
+	exit 0
+    else
+	echo "error: ${VARPATH} is undefined."
+	exit 1
+    fi
+}
+
+if [ "$1" == "--help" ]; then
+    echo "info: disco-param [CMD] [OPTIONS] ... execute the given command with the given options, and return zero on success."
+    echo
+    $0 set --help
+    $0 get --help
+    $0 delete --help
+    exit 0
+fi
+
+disco_$1 "$2" "$3" "$4" "$5" "$6"
+exit $?
+#  LocalWords:  regex

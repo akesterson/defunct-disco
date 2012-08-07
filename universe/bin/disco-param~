@@ -1,0 +1,26 @@
+#!/bin/bash
+
+PARAMROOT=/var/disco/parameters
+
+function set() 
+{
+}
+
+function get()
+{
+    if [ -d ${PARAMROOT}/${2} ]; then
+	echo '${PARAMROOT}/${2} = {}'
+	cd ${PARAMROOT}/${2}
+	for file in *;
+	do
+	    FNAME=${PARAMROOT}/${2}/${file}
+	    echo ${FNAME} = $(disco-param get ${FNAME})
+	done
+	exit 0
+    elif [ -f ${PARAMROOT}/${2} ] || [ -l ${PARAMROOT}/${2} ]; then
+	cat ${PARAMROOT}/${2}
+	exit 0
+    else
+	exit 1
+    fi
+}
