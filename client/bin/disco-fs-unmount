@@ -8,22 +8,21 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+#Unmount the proc/sys mirrors if they were mounted
+mount | grep " on ${DISCOROOT}/chroot/proc" >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+    umount ${DISCOROOT}/chroot/proc
+fi
+mount | grep " on ${DISCOROOT}/chroot/sys" >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+    umount ${DISCOROOT}/chroot/sys
+fi
 umount ${DISCOROOT}/chroot
-umount ${DISCOROOT}/proc/proc
 umount ${DISCOROOT}/rootfs
 mount | grep $DISCOROOT > /dev/null 2>&1
 if [ $? -eq 0 ]; then
     # Sometimes required
     umount ${DISCOROOT}/rootfs
-fi
-#Unmount the proc/sys mirrors if they were mounted
-mount | grep " on ${DISCOROOT}/proc/proc" >/dev/null 2>&1
-if [ $? -eq 0 ]; then
-    mount -t proc -o ro none ${DISCOROOT}/proc/proc
-fi
-mount | grep " on ${DISCOROOT}/sysfs/sys" >/dev/null 2>&1
-if [ $? -eq 0 ]; then
-    mount -t sysfs -o ro none ${DISCOROOT}/sysfs/sys
 fi
 
 rm -rf ${DISCOROOT}/scratchfs/* ${DISCOROOT}/scratchfs/.unionfs

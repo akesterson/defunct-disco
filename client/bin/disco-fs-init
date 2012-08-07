@@ -1,0 +1,70 @@
+#!/bin/bash
+
+DISCOCFG=/etc/disco
+if [ "$NOOP" != "" ]; then
+    DISCOROOT=/var/disco/testfs/noop
+else
+    DISCOROOT=/var/disco/testfs/real
+fi
+
+# Cleanup old junk
+mkdir -p ${DISCOROOT}
+echo 0 > ${DISCOROOT}/inited
+rm -rf ${DISCOROOT}/scratchfs
+rm -rf ${DISCOROOT}/munge/*
+rm -rf ${DISCOROOT}/dev/dev/*
+
+# Prepare all the mountpoint directories
+mkdir -p ${DISCOROOT}/chroot
+mkdir -p ${DISCOROOT}/proc/proc
+mkdir -p ${DISCOROOT}/sysfs/sys
+mkdir -p ${DISCOROOT}/rootfs
+mkdir -p ${DISCOROOT}/scratchfs
+mkdir -p ${DISCOROOT}/restricted/bin
+mkdir -p ${DISCOROOT}/munge/mungebin
+mkdir -p ${DISCOROOT}/munge/etc
+mkdir -p ${DISCOROOT}/dev/dev
+
+# Munge all the commands explicitly allowed for the bash restricted execution environment
+
+mkdir -p ${DISCOCFG}/restricted.d
+for file in $(cat ${DISCOCFG}/restricted.d/* 2>/dev/null | grep -v "^#")
+do
+    if [ ! -e ${DISCOROOT}/munge/mungebin/$(basename $file) ]; then
+	ln -s $file ${DISCOROOT}/munge/mungebin/$(basename $file)
+    fi
+done
+
+# Munge some more restricted execution stuff, but only if we actually have $NOOP
+
+if [ "$NOOP" != "" ]; then
+    # Munge up /etc/profile
+    mkdir -p ${DISCOROOT}/munge/etc
+    cp /etc/profile ${DISCOROOT}/munge/etc/profile
+    echo "export PATH=${DISCOROOT}/restricted/bin:${DISCOROOT}/munge/mungebin" >> ${DISCOROOT}/munge/etc/profile
+    cp /etc/bashrc ${DISCOROOT}/munge/etc/bashrc
+    echo "export PATH=${DISCOROOT}/restricted/bin:${DISCOROOT}/munge/mungebin" >> ${DISCOROOT}/munge/etc/bashrc
+
+    # Make default wrapper
+    echo -e "#!/bin/bash\necho \"info: Would execute : \$(basename \$0) \$@\"" > ${DISCOROOT}/restricted/bin/_disco_restricted_cmd
+    chmod +x ${DISCOROOT}/restricted/bin/_disco_restricted_cmd
+
+    # Now link everything to the default wrapper
+    for dir in $(echo $PATH | sed s/":"/" "/g)
+    do
+	for file in ${dir}/*
+	do
+	    FNAME=$(basename $file)
+	    if [ "$FNAME" != "bash" ] && [ -x $file ] && [ ! -x ${DISCOROOT}/munge/mungebin/$FNAME ] ; then
+		ln -s ${DISCOROOT}/restricted/bin/_disco_restricted_cmd ${DISCOROOT}/munge/mungebin/${FNAME}
+	    fi
+	done
+    done
+fi
+
+# We need SOME special files in /dev like /dev/null, so make them here
+
+mknod ${DISCOROOT}/dev/dev/null c 1 3
+chmod 666 ${DISCOROOT}/dev/dev/null
+
+echo 1 > ${DISCOROOT}/inited

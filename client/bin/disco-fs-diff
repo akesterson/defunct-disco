@@ -1,16 +1,13 @@
 #!/bin/bash
 
-OLDPWD=$(pwd)
+. /etc/disco/client.cfg
 
-DISCOROOT=/var/disco/testfs
-
-COLOR_CYAN=$(echo -e '\033[0;36;40m'); 
-COLOR_MAGENTA=$(echo -e '\033[0;35;40m');
-COLOR_GREEN=$(echo -e '\033[0;32;40m');
-COLOR_YELLOW=$(echo -e '\033[0;33;40m');
-COLOR_BLUE=$(echo -e '\033[0;34;40m');
-COLOR_RED=$(echo -e '\033[0;31;40m');
-COLOR_NORMAL=$(echo -e '\033[0m');
+SCRIPTROOT=$(dirname $(readlink -f $0))
+if [ "$NOOP" != "" ]; then
+    DISCOROOT=/var/disco/testfs/noop
+else
+    DISCOROOT=/var/disco/testfs/real
+fi
 
 cd $DISCOROOT
 
@@ -25,17 +22,21 @@ diff -r ./rootfs ./scratchfs |\
 find ./scratchfs/.unionfs -iname "*_HIDDEN~" |\
     sed s/"^.\/scratchfs\/.unionfs\(.*\)_HIDDEN~"/"info: File: deleted \1"/g >> /tmp/$$.discofsdiff
 
-#Find the permissions/timestamp diffs from rsync
-rsync -ani ./scratchfs/* ./rootfs/ | grep -v .unionfs
-
+# Find the permissions/timestamp diffs from rsync
+# FIXME: This should be the root of all diffs, not tacked on at the end.
+rsync -ani ./scratchfs/* ./rootfs/ |\
+    grep -v "_HIDDEN~\$" |\
+    grep -v .unionfs |\
+    sed s/"\.\/scratchfs"/""/g |\
+    sed s/"^\(.*\)\$"/"info: \1"/g
 
 # Swap out the (CONTENT) and (MD5SUM) hashes for actual content and md5s
-cat /tmp/$$.discofsdiff | python ${OLDPWD}/disco-fs-fixup.py > /tmp/$$.newfile
-mv /tmp/$$.newfile n/tmp/$$.discofsdiff
+# FIXME: Stop calling a python script for this.
+cat /tmp/$$.discofsdiff | NOOP=$NOOP python ${SCRIPTROOT}/disco-fs-fixup.py > /tmp/$$.newfile
+mv /tmp/$$.newfile /tmp/$$.discofsdiff
 
 
 cat /tmp/$$.discofsdiff |\
-    sed s/"^info:\(.*\)"/"${COLOR_CYAN}info:\1${COLOR_NORMAL}"/g
-    #sed s/"^warning: \(.*\)"/"${COLOR_YELLOW}warning: \1${COLOR_NORMAL}"/g
-
-cd $OLDPWD
+    sed s/"^info:\(.*\)"/"${COLOR_CYAN}info:\1${COLOR_NORMAL}"/g |\
+    sed s/"^warning: \(.*\)"/"${COLOR_YELLOW}warning: \1${COLOR_NORMAL}"/g |\
+    sed s/"^error: \(.*\)"/"${COLOR_RED}error: \1${COLOR_RED}"/g
