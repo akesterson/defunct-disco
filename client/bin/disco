@@ -1,0 +1,48 @@
+#!/bin/bash
+
+DISCOCFG=/etc/disco
+if [ "$NOOP" != "" ]; then
+    DISCOROOT=/var/disco/testfs/noop
+else
+    DISCOROOT=/var/disco/testfs/real
+fi
+
+function main() {
+    
+    mount | grep $DISCOROOT >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+	echo "error: disco filesystem does not appear to be mounted, please exec disco-fs-init, disco-fs-mount, and try again."
+	exit 1
+    fi
+	
+    disco-ball fetch_params
+    if [ $? -ne 0 ]; then
+	echo "error: Unable to fetch parameters for this host from remote server"
+	exit 1
+    fi
+
+    # Create the toposort of all the modules
+    for module in $(disco-param keys $(hostname)/modules)
+    do
+	NOOP="true" disco-ball fetch $module
+	disco-ball requires $module >> /tmp/$$.tsort
+    done
+
+    for module in $(cat /tmp/$$.tsort | tsort | tac)
+    do
+	echo "info: Processing ${module}"
+	NOOP="true" disco-ball template $module
+	disco-fs-diff
+	if [ "$NOOP" == "" ]; then
+	    rsync -aWH /var/disco/testfs/noop/* /
+	fi
+	NOOP="$NOOP" disco-ball exec $module
+	RETVAL=$?
+	rm -rf /var/disco/testfs/noop/scratchfs/*
+	if [ $RETVAL -ne 0 ]; then
+	    echo "error: Failed to apply $module."
+	fi
+    done
+}
+
+main $@

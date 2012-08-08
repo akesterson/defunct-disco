@@ -1,0 +1,91 @@
+#!/bin/bash
+
+DISCOROOT=/var/disco
+RSYNC=$(disco-param get disco/client/cmds/rsync || exit 1)
+SERVERURI=$(disco-param get disco/server/uri || exit 1)
+STORAGE=$(disco-param get disco/client/storage 2>/dev/null || echo "/var/disco/localstore")
+mkdir -p ${STORAGE}
+
+function init() {
+    if [ "$1" == "" ]; then
+	echo "Must enter a path to initialize" >&2
+	exit 1
+    fi
+    mkdir -p $1/templates
+    mkdir -p $1/scripts
+    mkdir -p $1/files
+    touch $1/requires
+    mkdir -p $1/parameters/$(basename $1)
+}
+
+function fetch_params() {
+    # Sometimes there's some shell escaping voodoo and rsync doesn't like the command args some people will pass it straight on
+    # the command line; so we wrap it in a little bash script, and everyone's happy.
+    echo ${RSYNC} --delete ${SERVERURI}::parameters/$(hostname)/* ${DISCOROOT}/parameters/$(hostname)/ > /tmp/$$.sh
+    echo 'exit $?' >> /tmp/$$.sh
+    /bin/bash /tmp/$$.sh
+    RETVAL=$?
+    rm -f /tmp/$$.sh
+    exit $RETVAL
+}
+
+function fetch() {
+    if [ "$1" == "" ]; then
+	echo "Must pass a module name to fetch"
+	exit 1
+    fi
+    rm -rf ${STORAGE}/${1}
+    # Sometimes there's some shell escaping voodoo and rsync doesn't like the command args some people will pass it straight on
+    # the command line; so we wrap it in a little bash script, and everyone's happy.
+    echo ${RSYNC} ${SERVERURI}::${1}/files/* / > /tmp/$$.sh
+    echo ${RSYNC} --delete ${SERVERURI}::${1}/requires ${SERVERURI}::${1}/scripts ${SERVERURI}::${1}/parameters ${SERVERURI}::${1}/templates ${STORAGE}/${1} >> /tmp/$$.sh
+    echo 'exit $?' >> /tmp/$$.sh
+    /bin/bash /tmp/$$.sh
+    RETVAL=$?
+    rm -f /tmp/$$.sh
+    exit $RETVAL
+}
+
+function requires()
+{
+    if [ "$1" == "" ]; then
+	echo "Must pass a module name for requirements"
+	exit 1
+    fi
+    cat ${STORAGE}/${1}/requires | sed s/"^"/"${1} "/g
+}
+
+function exec() {
+    RETVAL=0
+    for file in $(find ${STORAGE}/${1}/scripts/ -type f | sort -u)
+    do
+	NOOP="$NOOP" disco-sh-exec $file /tmp/${1}-$(basename $file)
+	RETVAL=$(expr $RETVAL + $?)
+    done
+}
+
+function template() {
+    if [ "$1" == "" ]; then
+	echo "Must pass a module name to template"
+	exit 1
+    fi
+    DESTROOT=""
+    if [ "$NOOP" != "" ]; then
+	DESTROOT=/var/disco/testfs/noop
+    fi
+    cd ${STORAGE}/${1}/templates
+    for file in $(find . -type f | sed s/"^\.\/"//g)
+    do
+	NOOP=true disco-sh-exec $(pwd)/$file /$file >/tmp/$$.tmpl
+	if [ $? -eq 0 ]; then
+	    mkdir -p $(dirname ${DESTROOT}/$file)
+	    mv /tmp/$$.tmpl ${DESTROOT}/$file
+	else
+	    echo "error: template ${1}/templates/$file failed, not replacing /$file"
+	    exit 1
+	fi
+    done
+    exit 0
+}
+
+$1 $2

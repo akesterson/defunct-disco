@@ -40,8 +40,27 @@ function disco_delete() {
 function disco_set() {
     if [ "$1" == "--help" ]; then
 	echo "info: disco-param set [PATH_NAME] [optarg] ... reads from stdin and sets PATH_NAME, unless [optarg] is {}, in which case a new hierarchy is made" >&2
+	echo "info: disco-param set - .... Reads lines from stdin, with each line being PATH_NAME=VALUE, and performs 'set' for each pair." >&2
 	exit 1
     fi
+
+    if [ "$1" == "-" ]; then
+	RETVAL=0
+	while read LINE
+	do
+	    PATHNAME=$(echo $LINE | cut -d = -f 1)
+	    VALUE=$(echo $LINE | cut -d = -f 2-| sed s/"^\s*"//g)
+	    echo $PATHNAME = $VALUE
+	    if [ "$VALUE" == "{}" ]; then
+		disco_set $PATHNAME "{}"
+	    else
+		echo $VALUE | disco_set $PATHNAME
+	    fi
+	    RETVAL=$(expr $RETVAL + $?)
+	done
+	exit $RETVAL
+    fi
+
     check_names_regex "$1" || exit 1
     mkdir -p $(dirname ${PARAMROOT}/${1})
     if [ "$2" == "" ]; then
@@ -58,33 +77,53 @@ function disco_set() {
     fi
 }
 
-function disco_get() {
+function disco_keys() {
     if [ "$1" == "--help" ]; then
-	echo "info: disco-param get [PATH_NAME]" >&2
+	echo "info: disco-param keys [PATH_NAME] ... returns a list of all keys present in the toplevel of the given directory" >&2
 	exit 1
     fi
     VARPATH=$(echo $1 | sed s/"^\/*"//g)
     check_names_regex "$VARPATH" || exit 1
     if [ -d ${PARAMROOT}/${VARPATH} ]; then
-	if [ "$RECURSING" == "" ]; then
-	    echo "${VARPATH} = {}"
-	else
-	    echo '{}'
-	fi
 	# Iterate over the path like a key/value dictionary
 	cd ${PARAMROOT}/${VARPATH}
 	for file in $(ls 2>/dev/null);
 	do
-	    echo "${VARPATH}/${file} = $(RECURSING='true' disco_get ${VARPATH}/${file})" | sed s/"^\/*"//g
+	    echo $file
 	done
 	exit 0
-    elif [ -e ${PARAMROOT}/${VARPATH} ]; then
-	cat ${PARAMROOT}/${VARPATH}
-	exit 0
     else
-	echo "error: ${VARPATH} is undefined."
+	echo "error: $VARPATH does not exist or is not a directory" >&2
 	exit 1
     fi
+}
+
+function disco_dump() {
+    if [ "$1" == "--help" ]; then
+	echo "info: disco-param dump [PATH_NAME] ... Print each key/value pair in the tree in PATH_NAME = VALUE format, one per line." >&2
+	exit 1
+    fi
+    VARPATH=$(echo $1 | sed s/"^\/*"//g)
+    check_names_regex "$VARPATH" || exit 1
+    cd $PARAMROOT
+    find $VARPATH | sed s/"^\.\/*"//g | grep -v "^$" | while read line; do if [ -d $line ]; then echo $line = '{}' ; else echo $line = $(cat $line); fi; done | sort -u
+    exit 0
+}
+
+function disco_get() {
+    if [ "$1" == "--help" ]; then
+	echo "info: disco-param get [PATH_NAME] ... Get the value of the given path name." >&2
+	exit 1
+    fi
+    VARPATH=$(echo $1 | sed s/"^\/*"//g)
+    check_names_regex "$VARPATH" || exit 1
+    cd $PARAMROOT
+    if [ -d ${PARAMROOT}/${VARPATH} ]; then
+	echo '{}'
+    else
+	cat ${PARAMROOT}/${VARPATH}
+    fi
+    exit $?
 }
 
 if [ "$1" == "--help" ]; then
@@ -92,7 +131,9 @@ if [ "$1" == "--help" ]; then
     echo
     $0 set --help
     $0 get --help
+    $0 dump --help
     $0 delete --help
+    $0 keys --help
     exit 0
 fi
 

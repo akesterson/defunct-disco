@@ -1,6 +1,10 @@
 #!/bin/bash
 
-DISCOROOT=/var/disco/testfs
+if [ "$NOOP" == "" ]; then
+    DISCOROOT=/var/disco/testfs/real
+else
+    DISCOROOT=/var/disco/testfs/noop
+fi
 
 mount | grep $DISCOROOT > /dev/null 2>&1
 if [ $? -ne 0 ]; then

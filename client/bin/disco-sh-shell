@@ -9,13 +9,12 @@ fi
 mount | grep $DISCOROOT >/dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "disco filesystem is not mounted"
-    exit 0
+    exit 1
 fi
 
 if [ "$NOOP" != "" ]; then
-    #chroot ${DISCOROOT}/chroot /bin/env PATH=${DISCOROOT}/restricted/bin:${DISCOROOT}/munge/mungebin /bin/bash --login --restricted $@
-    chroot ${DISCOROOT}/chroot //bin/bash --login --restricted $@
+    chroot ${DISCOROOT}/chroot /bin/env PATH=${DISCOROOT}/restricted/bin:${DISCOROOT}/munge/mungebin /bin/bash --restricted $@
 else
-    chroot ${DISCOROOT}/chroot /bin/bash --login $@
+    chroot ${DISCOROOT}/chroot /bin/bash $@
 fi
 exit $?

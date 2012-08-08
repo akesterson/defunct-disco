@@ -1,14 +1,18 @@
 #!/bin/bash
 
-DISCOROOT=/var/disco/testfs
+if [ "$NOOP" == "" ]; then
+    DISCOROOT=/var/disco/testfs/real
+else
+    DISCOROOT=/var/disco/testfs/noop
+fi
 
 mount | grep $DISCOROOT >/dev/null 2>&1
 if [ $? -ne 0 ]; then
-    ./disco-fs-mount
+    ./disco-fs-mount || exit 1
 fi
 
 # Strip out any shebang and put the script in the root
 mkdir -p ${DISCOROOT}/restricted/$(dirname $2)
 cat $1 | sed s/'^#!.*'/''/g > ${DISCOROOT}/restricted/$2
-$(dirname $0)/disco-sh-shell ${DISCOROOT}/restricted/$2
+NOOP="$NOOP" $(dirname $0)/disco-sh-shell ${DISCOROOT}/restricted/$2
 exit $?
