@@ -11,32 +11,44 @@ fi
 
 cd $DISCOROOT
 
-diff -r ./rootfs ./scratchfs |\
-    grep -v "^Only in ./rootfs" |\
-    sed s/"^Only in \.\/scratchfs\(.*\): \(.*\)"/"info: File: created \1\/\2 : (CONTENT)"/g |\
-    sed s/"\/\/"/"\/"/g |\
-    grep -v "File: created /.unionfs" |\
-    sed s/"^Binary files .\/rootfs\(.*\) and .\/scratchfs.*"/"info: File: modified \1 : (OLDMD5SUM) => (NEWMD5SUM)"/g |\
-    sed s/"^diff -r .\/rootfs\(.*\) .\/scratchfs\(.*\)"/"info: File: modified \1 :"/g > /tmp/$$.discofsdiff
+rsync --checksum --times --perms --owner --group -ani ./scratchfs/ ./rootfs/ |\
+    grep -v ".unionfs.*/$" |\
+    sed s/"\.\/scratchfs"/""/ |\
+    sed s/"\.unionfs\/"/""/ |\
+    grep -v "./$" |\
+    sed s/"^[<>ch\.*]d"/"File: directory: "/ |\
+    sed s/"^[<>ch\.*]f"/"File: file: "/ |\
+    sed s/"^[<>ch\.*]L"/"File: symlink: "/ |\
+    sed s/"^[<>ch\.*]D"/"File: device: "/ |\
+    sed s/"^[<>ch\.*]S"/"File: special: "/ |\
+    sed s/": \([\.cstpoguax+]*\) \(.*\)$"/": \2 : \1"/ |\
+    sed s/"+++++++++$"/"Created"/ |\
+    sed s/" [\.cstpoguax]*$"/" Modified"/ |\
+    sed s/"_HIDDEN~ : Created"/" : Deleted"/ |\
+    sed s/"^\(.*\)\$"/"info: \1"/g |\
+while read LINE
+do
+    FNAME=$(echo $LINE | cut -d : -f 4 | sed s/"^ *"/""/ | sed s/" *$"/""/)
+    MD5_NEW=$(md5sum ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null| cut -d " " -f 1)
+    MD5_OLD=$(md5sum /${FNAME} 2>/dev/null| cut -d " " -f 1)
+    PERMS_NEW=$(stat --format "%G:%U %a" ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null)
+    PERMS_OLD=$(stat --format "%G:%U %a" /${FNAME} 2>/dev/null)
+    if [ ! -d /${FNAME} ] && [ ! -d ${DISCOROOT}/scratchfs/${FNAME} ]; then 
+	DIFF=$(echo; diff /${FNAME} ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null > /tmp/$$.diff )
+    fi
+    file ${DISCOROOT}/scratchfs/${FNAME} 2>&1 | grep ASCII >/dev/null 2>&1
+    if [ $? -eq 0 ]; then
+	CONTENT=$(echo "Text"; cat ${DISCOROOT}/scratchfs/${FNAME} | sed s/"^"/"> "/g > /tmp/$$.content)
+    fi
+    echo $LINE |\
+        sed -e s/"Created$"/"Created : md5=[${MD5_NEW}] perms=[${PERMS_NEW}]"/ |\
+        sed -e s/"Modified$"/"Modified : md5=[${MD5_OLD} => ${MD5_NEW}] perms=[${PERMS_OLD} => ${PERMS_NEW}]"/
+    if [ -f /tmp/$$.diff ]; then
+	cat /tmp/$$.diff
+    elif [ -f /tmp/$$.content ]; then
+	cat /tmp/$$.content
+    fi
+    rm -f /tmp/$$.content /tmp/$$.diff 2>/dev/null 
+done
 
-find ./scratchfs/.unionfs -iname "*_HIDDEN~" |\
-    sed s/"^.\/scratchfs\/.unionfs\(.*\)_HIDDEN~"/"info: File: deleted \1"/g >> /tmp/$$.discofsdiff
-
-# Find the permissions/timestamp diffs from rsync
-# FIXME: This should be the root of all diffs, not tacked on at the end.
-rsync -ani ./scratchfs/* ./rootfs/ |\
-    grep -v "_HIDDEN~\$" |\
-    grep -v .unionfs |\
-    sed s/"\.\/scratchfs"/""/g |\
-    sed s/"^\(.*\)\$"/"info: \1"/g
-
-# Swap out the (CONTENT) and (MD5SUM) hashes for actual content and md5s
-# FIXME: Stop calling a python script for this.
-cat /tmp/$$.discofsdiff | NOOP=$NOOP python ${SCRIPTROOT}/disco-fs-fixup.py > /tmp/$$.newfile
-mv /tmp/$$.newfile /tmp/$$.discofsdiff
-
-
-cat /tmp/$$.discofsdiff |\
-    sed s/"^info:\(.*\)"/"${COLOR_CYAN}info:\1${COLOR_NORMAL}"/g |\
-    sed s/"^warning: \(.*\)"/"${COLOR_YELLOW}warning: \1${COLOR_NORMAL}"/g |\
-    sed s/"^error: \(.*\)"/"${COLOR_RED}error: \1${COLOR_RED}"/g
+rm -f /tmp/$$*

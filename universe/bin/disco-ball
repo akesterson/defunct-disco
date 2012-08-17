@@ -40,7 +40,8 @@ function fetch() {
     echo ${RSYNC} ${SERVERURI}::${1}/files/* / > /tmp/$$.sh
     echo ${RSYNC} --delete ${SERVERURI}::${1}/requires ${SERVERURI}::${1}/scripts ${SERVERURI}::${1}/parameters ${SERVERURI}::${1}/templates ${STORAGE}/${1} >> /tmp/$$.sh
     echo 'exit $?' >> /tmp/$$.sh
-    /bin/bash /tmp/$$.sh
+    /bin/bash /tmp/$$.sh 2>/tmp/$$.errors | sed s/"^"/"info: ${1}: "/g
+    cat /tmp/$$.errors | grep -v "some files/attrs were not transferred" | sed s/"^"/"error: ${1}: "/g
     RETVAL=$?
     rm -f /tmp/$$.sh
     exit $RETVAL
@@ -71,7 +72,7 @@ function template() {
     fi
     DESTROOT=""
     if [ "$NOOP" != "" ]; then
-	DESTROOT=/var/disco/testfs/noop
+	DESTROOT=/var/disco/testfs/noop/scratchfs
     fi
     cd ${STORAGE}/${1}/templates
     for file in $(find . -type f | sed s/"^\.\/"//g)

@@ -3,9 +3,9 @@
 PARAMROOT=/var/disco/parameters
 
 function check_names_regex() {
-    echo "$1" | grep -E '^[a-zA-Z0-9_-\./]*$' >/dev/null 2>&1
+    echo $1 | grep -E '^[a-zA-Z0-9_\-\.\/]*$' >/dev/null 2>&1
     if [ $? -ne 0 ]; then
-	echo "error: Invalid characters in pathname '$1'. Valid pathname characters are [a-zA-Z0-9_-\.\/]*." >&2
+	echo "error: Invalid characters in pathname '$1'. Valid pathname characters are [a-zA-Z0-9_-.\/]*." >&2
 	exit 1
     fi
     echo "$1" | grep "^/" >/dev/null 2>&1

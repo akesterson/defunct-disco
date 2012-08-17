@@ -46,7 +46,7 @@ if [ "$NOOP" != "" ]; then
     echo "export PATH=${DISCOROOT}/restricted/bin:${DISCOROOT}/munge/mungebin" >> ${DISCOROOT}/munge/etc/bashrc
 
     # Make default wrapper
-    echo -e "#!/bin/bash\necho \"info: Would execute : \$(basename \$0) \$@\"" > ${DISCOROOT}/restricted/bin/_disco_restricted_cmd
+    echo -e "#!/bin/bash\necho \"warning: Would execute : \$(basename \$0) \$@\"" > ${DISCOROOT}/restricted/bin/_disco_restricted_cmd
     chmod +x ${DISCOROOT}/restricted/bin/_disco_restricted_cmd
 
     # Now link everything to the default wrapper
