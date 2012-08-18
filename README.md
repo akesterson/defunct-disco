@@ -254,7 +254,7 @@ the fetched files are not merged out of the scratchpad onto the live filesystem.
 
 See the client disco-fs-* and disco-exec-* scripts for more information on how this is done.
 
-A simple example
+A complete example
 =====
 
 Presume we have a server with an incoming user, "disco", who has a home directory like this:
