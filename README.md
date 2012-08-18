@@ -275,24 +275,6 @@ Presume we have a server with an incoming user, "disco", who has a home director
     list = yes
     use chroot = false 
 
-... and that we have, on our client, a disco parameters tree set up like this:
-
-    [disco@client disco]$ disco-param dump
-    disco = {}
-    disco/client = {}
-    disco/client/cmds = {}
-    disco/client/cmds/rsync = rsync -qaWHe "ssh -i /home/disco/.ssh/id_rsa_disco"
-    disco/server = {}
-    disco/server/uri = disco@aklabs.net
-    localhost.localdomain = {}
-    localhost.localdomain/modules = {}
-    localhost.localdomain/modules/othermodule-3.2 = {}
-    localhost.localdomain/modules/testmodule-1.0 = {}
-    localhost.localdomain/parameters = {}
-    localhost.localdomain/parameters/something = LOLTHISKEYMEANSNOTHING
-
-... And that the parameters/modules on our rsync server look like this:
-
     disco@server:~$ find parameters
     parameters
     parameters/localhost.localdomain
@@ -332,14 +314,30 @@ Presume we have a server with an incoming user, "disco", who has a home director
     echo KEY_VALUE=$(cat /var/disco/parameters/$(hostname)/parameters/something)
   
     disco@server:~$ cat modules/testmodule-1.0/scripts/00-hello.sh
-  #!/bin/bash
+    #!/bin/bash
   
     echo "Hello, disco"
   
     disco@server:~$ cat modules/testmodule-1.0/scripts/10-service_stop.sh
-  #!/bin/bash
+    #!/bin/bash
   
     service postgresql stop
+
+... and that we have, on our client, a disco parameters tree set up like this:
+
+    [disco@client disco]$ disco-param dump
+    disco = {}
+    disco/client = {}
+    disco/client/cmds = {}
+    disco/client/cmds/rsync = rsync -qaWHe "ssh -i /home/disco/.ssh/id_rsa_disco"
+    disco/server = {}
+    disco/server/uri = disco@aklabs.net
+    localhost.localdomain = {}
+    localhost.localdomain/modules = {}
+    localhost.localdomain/modules/othermodule-3.2 = {}
+    localhost.localdomain/modules/testmodule-1.0 = {}
+    localhost.localdomain/parameters = {}
+    localhost.localdomain/parameters/something = LOLTHISKEYMEANSNOTHING
 
 ... Then we can use disco to configure our host.
 
@@ -349,8 +347,9 @@ root on the client.
     [root@localhost disco]$ NOOP=true disco-fs-mount
     [root@localhost disco]$ NOOP=true disco-fs-init
 
-This will take a minute or two, the init does a lot of work. Now we can 
-do our noop run:
+This will take a minute or two, the init does a lot of work. (But you only
+have to run the init once at system start, no matter how many times you 
+run disco.) Now we can do our noop run:
 
     [disco@localhost disco]$ NOOP=true disco dance
     error: othermodule-3.2: rsync: link_stat "/files/*" (in othermodule-3.2) failed: No such file or directory (2)
