@@ -222,6 +222,12 @@ of having to specify a filesystem path, will give you all the benefits of an SSH
 and no concern of incoming root access to the server. (Note that this also prevents the often mysterious
 and troublesome SSL certificate issues associated with other CI systems.)
 
+Performance Metrics
+=====
+
+DISCO stores performance metrics for pretty much everything it does. Use 'disco report' to see them. 
+The report generated will represent the times and statistics for the most recent disco dance.
+
 The Gory Details ("how does it work?")
 =====
 
@@ -406,7 +412,7 @@ Disco will report other types of file modifications, as well. If you were to
 open an interactive shell in the disco chroot, and perform some more interesting
 operations, representing what a more advanced sort of script might do:
 
-    [disco@client disco]$ sudo NOOP=true ./client/bin/disco-sh-shell
+    [disco@client disco]$ NOOP=true disco-sh-shell
     [root@client /]# rm -f /etc/passwd
     [root@client /]# grep -v root /etc/shadow | tee tmpfile
     bin:*:15240:0:99999:7:::
@@ -457,7 +463,7 @@ operations, representing what a more advanced sort of script might do:
 ... Since that was done inside of the noop shell (where all the scripts and 
 templates run during noop), we can easily report on these activities:
 
-    [disco@client disco]$ sudo NOOP=true ./client/bin/disco-fs-diff
+    [disco@client disco]$ NOOP=true disco-fs-diff
     info: File: file: /etc/passwd : Deleted
     1,35d0
     < root:x:0:0:root:/root:/bin/bash
@@ -519,6 +525,7 @@ And here we see some more of Disco's rather extensive noop reporting capabilitie
 But let's say that this run took longer than we thought it should. What was taking
 so much time? Disco will tell us.
 
+    [root@disco ~]# disco report
     report: _internal: diff
     report:    time_real 0.82 : time_user 0.14 : time_sys 0.66
     report:    mem_avg 0 : mem_max 5184 : mem_faults_major 0 : mem_faults_minor 18218
