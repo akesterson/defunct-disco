@@ -1,5 +1,6 @@
 #!/bin/bash
 
+TIME="time_real %e : time_user %U : time_sys %S\nmem_avg %K : mem_max %M : mem_faults_major %F : mem_faults_minor %R\nio_fsin %I : io_fsout %O : io_sockin %r : io_sockout %s : io_signals %k\nexit: %x"
 DISCOCFG=/etc/disco
 if [ "$NOOP" != "" ]; then
     DISCOROOT=/var/disco/testfs/noop
@@ -15,8 +16,19 @@ function colorize() {
         sed s/"^error: \(.*\)"/"${COLOR_RED}error: \1${COLOR_NORMAL}"/g
 }
 
+function report() {
+    for module in $(ls /var/disco/reports/)
+    do
+	BASE="report: $module:"
+	for file in $(ls /var/disco/reports/${module})
+	do
+	    echo $BASE $file
+	    cat /var/disco/reports/${module}/$file | sed s/"^"/"report:    "/g
+	done
+    done
+}
+
 function dance() {
-    
     mount | grep $DISCOROOT >/dev/null 2>&1
     if [ $? -ne 0 ]; then
 	echo "error: disco filesystem does not appear to be mounted, please exec disco-fs-init, disco-fs-mount, and try again."
@@ -40,7 +52,7 @@ function dance() {
     do
 	echo "info: Processing ${module}"
 	NOOP="true" disco-ball template $module
-	disco-fs-diff
+	/usr/bin/time -f "$TIME" -o /var/disco/reports/_internal/diff disco-fs-diff
 	if [ "$NOOP" == "" ]; then
 	    rsync -aWH /var/disco/testfs/noop/* /
 	fi
@@ -51,6 +63,11 @@ function dance() {
 	    echo "error: Failed to apply $module."
 	fi
     done
+
+    if [ "$REPORT" != "" ]; then
+	report
+    fi
+
 }
 
 $1 "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9"

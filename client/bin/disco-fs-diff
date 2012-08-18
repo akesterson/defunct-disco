@@ -29,7 +29,8 @@ rsync --checksum --times --perms --owner --group -ani ./scratchfs/ ./rootfs/ |\
 while read LINE
 do
     FNAME=$(echo $LINE | cut -d : -f 4 | sed s/"^ *"/""/ | sed s/" *$"/""/)
-    NEWSTR=""
+
+    # ----- File modification/creation data
     MODSTR=""
     MD5_NEW=$(md5sum ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null| cut -d " " -f 1)
     MD5_OLD=$(md5sum /${FNAME} 2>/dev/null| cut -d " " -f 1)
@@ -61,13 +62,16 @@ do
     if [ "$DEVICE_NEW" != "$DEVICE_OLD" ]; then
 	MODSTR="$MODSTR device=[$DEVICE_OLD => $DEVICE_NEW]"
     fi
-
     if [ ! -d /${FNAME} ] && [ ! -d ${DISCOROOT}/scratchfs/${FNAME} ]; then 
 	diff -N /${FNAME} ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null > /tmp/$$.diff
     fi
+
+    # ------
+
     echo $LINE |\
-        sed -e s/"Created$"/"Created : type=[${TYPE_NEW}] device=[${DEVICE_NEW}] mode=[${RAWMODE_NEW}] selinux=[${SELINUX_NEW}] md5=[${MD5_NEW}] perms=[${PERMS_NEW}]OB"/ |\
-        sed -e s/"Modified$"/"Modified : ${MODSTR}"/
+        sed -e s/"Created$"/"Created : type=[${TYPE_NEW}] device=[${DEVICE_NEW}] mode=[${RAWMODE_NEW}] selinux=[${SELINUX_NEW}] md5=[${MD5_NEW}] perms=[${PERMS_NEW}]"/ |\
+        sed -e s/"Modified$"/"Modified :${MODSTR}"/ |\
+        sed s/"^\([a-z]*\): File: \([a-z]*\): "/"\1: File: \2: \/"/
     if [ -f /tmp/$$.diff ]; then
 	cat /tmp/$$.diff
     fi

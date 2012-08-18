@@ -1,10 +1,12 @@
 #!/bin/bash
 
+TIME="time_real %e : time_user %U : time_sys %S\nmem_avg %K : mem_max %M : mem_faults_major %F : mem_faults_minor %R\nio_fsin %I : io_fsout %O : io_sockin %r : io_sockout %s : io_signals %k\nexit: %x"
 DISCOROOT=/var/disco
 RSYNC=$(disco-param get disco/client/cmds/rsync || exit 1)
 SERVERURI=$(disco-param get disco/server/uri || exit 1)
 STORAGE=$(disco-param get disco/client/storage 2>/dev/null || echo "/var/disco/localstore")
 mkdir -p ${STORAGE}
+mkdir -p ${DISCOROOT}/reports/_internal
 
 function init() {
     if [ "$1" == "" ]; then
@@ -23,7 +25,7 @@ function fetch_params() {
     # the command line; so we wrap it in a little bash script, and everyone's happy.
     echo ${RSYNC} --delete ${SERVERURI}::parameters/$(hostname)/* ${DISCOROOT}/parameters/$(hostname)/ > /tmp/$$.sh
     echo 'exit $?' >> /tmp/$$.sh
-    /bin/bash /tmp/$$.sh
+    /usr/bin/time -f "$TIME" -o ${DISCOROOT}/reports/_internal/fetch_params /bin/bash /tmp/$$.sh
     RETVAL=$?
     rm -f /tmp/$$.sh
     exit $RETVAL
@@ -35,12 +37,14 @@ function fetch() {
 	exit 1
     fi
     rm -rf ${STORAGE}/${1}
+    mkdir -p ${DISCOROOT}/reports/$1
+    rm -f ${DISCOROOT}/reports/${1}/fetch
     # Sometimes there's some shell escaping voodoo and rsync doesn't like the command args some people will pass it straight on
     # the command line; so we wrap it in a little bash script, and everyone's happy.
     echo ${RSYNC} ${SERVERURI}::${1}/files/* / > /tmp/$$.sh
     echo ${RSYNC} --delete ${SERVERURI}::${1}/requires ${SERVERURI}::${1}/scripts ${SERVERURI}::${1}/parameters ${SERVERURI}::${1}/templates ${STORAGE}/${1} >> /tmp/$$.sh
     echo 'exit $?' >> /tmp/$$.sh
-    /bin/bash /tmp/$$.sh 2>/tmp/$$.errors | sed s/"^"/"info: ${1}: "/g
+    /usr/bin/time -f "$TIME" -o ${DISCOROOT}/reports/${1}/fetch /bin/bash /tmp/$$.sh 2>/tmp/$$.errors | sed s/"^"/"info: ${1}: "/g
     cat /tmp/$$.errors | grep -v "some files/attrs were not transferred" | sed s/"^"/"error: ${1}: "/g
     RETVAL=$?
     rm -f /tmp/$$.sh
@@ -58,11 +62,18 @@ function requires()
 
 function exec() {
     RETVAL=0
+    mkdir -p ${DISCOROOT}/reports/$1
+    rm -f ${DISCOROOT}/reports/${1}/exec
     for file in $(find ${STORAGE}/${1}/scripts/ -type f | sort -u)
     do
-	NOOP="$NOOP" disco-sh-exec $file /tmp/${1}-$(basename $file)
+	NOOP="$NOOP" /usr/bin/time -f "$TIME" -o /tmp/$$.exec.time disco-sh-exec $file /tmp/${1}-$(basename $file)
 	RETVAL=$(expr $RETVAL + $?)
+	SNAME=$(basename $file)
+	echo "$SNAME : " >> ${DISCOROOT}/reports/${1}/exec
+	cat /tmp/$$.exec.time | sed s/"^"/"    "/g >> ${DISCOROOT}/reports/${1}/exec
     done
+    rm -f /tmp/$$.exec.time
+    exit $RETVAL
 }
 
 function template() {
@@ -70,23 +81,29 @@ function template() {
 	echo "Must pass a module name to template"
 	exit 1
     fi
+    mkdir -p ${DISCOROOT}/reports/$1
+    rm -f ${DISCOROOT}/reports/${1}/template
     DESTROOT=""
     if [ "$NOOP" != "" ]; then
 	DESTROOT=/var/disco/testfs/noop/scratchfs
     fi
     cd ${STORAGE}/${1}/templates
+    RETVAL=0
     for file in $(find . -type f | sed s/"^\.\/"//g)
     do
-	NOOP=true disco-sh-exec $(pwd)/$file /$file >/tmp/$$.tmpl
+	NOOP=true /usr/bin/time -f "$TIME" -o /tmp/$$.template.time disco-sh-exec $(pwd)/$file /$file >/tmp/$$.tmpl
+	echo "$file : " >> ${DISCOROOT}/reports/${1}/template
+	cat /tmp/$$.template.time | sed s/"^"/"    "/g >> ${DISCOROOT}/reports/${1}/template
 	if [ $? -eq 0 ]; then
 	    mkdir -p $(dirname ${DESTROOT}/$file)
 	    mv /tmp/$$.tmpl ${DESTROOT}/$file
 	else
 	    echo "error: template ${1}/templates/$file failed, not replacing /$file"
-	    exit 1
+	    RETVAL=1
 	fi
     done
-    exit 0
+    rm -f /tmp/$$.template.time
+    exit $RETVAL
 }
 
 $1 $2
