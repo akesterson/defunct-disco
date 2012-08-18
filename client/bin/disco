@@ -13,7 +13,8 @@ fi
 function colorize() {
     sed s/"^info:\(.*\)"/"${COLOR_CYAN}info:\1${COLOR_NORMAL}"/g |\
         sed s/"^warning: \(.*\)"/"${COLOR_YELLOW}warning: \1${COLOR_NORMAL}"/g |\
-        sed s/"^error: \(.*\)"/"${COLOR_RED}error: \1${COLOR_NORMAL}"/g
+        sed s/"^error: \(.*\)"/"${COLOR_RED}error: \1${COLOR_NORMAL}"/g |\
+        sed s/"^report: \(.*\)"/"${COLOR_CYAN}report: \1${COLOR_NORMAL}"/g
 }
 
 function report() {
@@ -52,9 +53,9 @@ function dance() {
     do
 	echo "info: Processing ${module}"
 	NOOP="true" disco-ball template $module
-	/usr/bin/time -f "$TIME" -o /var/disco/reports/_internal/diff disco-fs-diff
+	NOOP=true /usr/bin/time -f "$TIME" -o /var/disco/reports/_internal/diff disco-fs-diff
 	if [ "$NOOP" == "" ]; then
-	    rsync -aWH /var/disco/testfs/noop/* /
+	    rsync -aWH /var/disco/testfs/noop/scratchfs/. /.
 	fi
 	NOOP="$NOOP" disco-ball exec $module
 	RETVAL=$?

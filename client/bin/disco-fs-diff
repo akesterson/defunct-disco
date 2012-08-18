@@ -11,6 +11,10 @@ fi
 
 cd $DISCOROOT
 
+CREATED=0
+DELETED=0
+MODIFIED=0
+
 rsync --checksum --times --perms --owner --group -ani ./scratchfs/ ./rootfs/ |\
     grep -v ".unionfs.*/$" |\
     sed s/"\.\/scratchfs"/""/ |\
