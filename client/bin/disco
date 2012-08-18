@@ -53,7 +53,7 @@ function dance() {
     do
 	echo "info: Processing ${module}"
 	NOOP="true" disco-ball template $module
-	NOOP=true /usr/bin/time -f "$TIME" -o /var/disco/reports/_internal/diff disco-fs-diff
+	NOOP=true /usr/bin/time -f "$TIME" -o /var/disco/reports/${module}/diff disco-fs-diff
 	if [ "$NOOP" == "" ]; then
 	    rsync -aWH /var/disco/testfs/noop/scratchfs/. /.
 	fi
