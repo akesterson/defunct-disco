@@ -338,12 +338,6 @@ Presume we have a server with an incoming user, "disco", who has a home director
     disco/client/cmds/rsync = rsync -qaWHe "ssh -i /home/disco/.ssh/id_rsa_disco"
     disco/server = {}
     disco/server/uri = disco@aklabs.net
-    localhost.localdomain = {}
-    localhost.localdomain/modules = {}
-    localhost.localdomain/modules/othermodule-3.2 = {}
-    localhost.localdomain/modules/testmodule-1.0 = {}
-    localhost.localdomain/parameters = {}
-    localhost.localdomain/parameters/something = LOLTHISKEYMEANSNOTHING
 
 ... Then we can use disco to configure our host.
 
