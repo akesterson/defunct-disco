@@ -32,6 +32,12 @@ systems. You may or may not be able to use this tool on FreeBSD or Mac OS X, I h
 tried. Due to the way it executes, this tool will probably never, ever execute properly
 on Windows.
 
+Installing DISCO
+=====
+
+    1. Check out the sources
+    2. sudo make install
+
 Why focus so much on linux?
 =====
 
