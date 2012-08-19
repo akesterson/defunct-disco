@@ -526,35 +526,45 @@ so much time? Disco will tell us.
     report:    io_fsin 0 : io_fsout 8 : io_sockin 0 : io_sockout 0 : io_signals 0
     report:    exit: 0
     report: _internal: fetch_params
-    report:    time_real 1.17 : time_user 0.03 : time_sys 0.08
-    report:    mem_avg 0 : mem_max 11136 : mem_faults_major 0 : mem_faults_minor 1718
+    report:    time_real 1.26 : time_user 0.02 : time_sys 0.08
+    report:    mem_avg 0 : mem_max 11136 : mem_faults_major 0 : mem_faults_minor 1728
     report:    io_fsin 0 : io_fsout 0 : io_sockin 0 : io_sockout 0 : io_signals 0
     report:    exit: 0
+    report: othermodule-3.2: diff
+    report:    time_real 0.80 : time_user 0.13 : time_sys 0.65
+    report:    mem_avg 0 : mem_max 4816 : mem_faults_major 0 : mem_faults_minor 16448
+    report:    io_fsin 0 : io_fsout 8 : io_sockin 0 : io_sockout 0 : io_signals 0
+    report:    exit: 0
     report: othermodule-3.2: fetch
-    report:    time_real 2.43 : time_user 0.05 : time_sys 0.14
-    report:    mem_avg 0 : mem_max 11152 : mem_faults_major 0 : mem_faults_minor 2881
+    report:    time_real 2.28 : time_user 0.05 : time_sys 0.14
+    report:    mem_avg 0 : mem_max 11152 : mem_faults_major 0 : mem_faults_minor 2843
     report:    io_fsin 0 : io_fsout 24 : io_sockin 0 : io_sockout 0 : io_signals 0
     report:    exit: 0
     report: othermodule-3.2: template
     report:    etc/othermodule/stuff.cfg :
-    report:        time_real 0.56 : time_user 0.03 : time_sys 0.37
-    report:        mem_avg 0 : mem_max 4608 : mem_faults_major 122 : mem_faults_minor 4880
+    report:        time_real 0.56 : time_user 0.04 : time_sys 0.37
+    report:        mem_avg 0 : mem_max 4592 : mem_faults_major 122 : mem_faults_minor 4885
     report:        io_fsin 25536 : io_fsout 16 : io_sockin 0 : io_sockout 0 : io_signals 0
     report:        exit: 0
+    report: testmodule-1.0: diff
+    report:    time_real 2.56 : time_user 0.42 : time_sys 2.10
+    report:    mem_avg 0 : mem_max 5184 : mem_faults_major 0 : mem_faults_minor 57661
+    report:    io_fsin 0 : io_fsout 32 : io_sockin 0 : io_sockout 0 : io_signals 0
+    report:    exit: 0
     report: testmodule-1.0: exec
     report:    00-hello.sh :
-    report:        time_real 0.26 : time_user 0.02 : time_sys 0.19
-    report:        mem_avg 0 : mem_max 4608 : mem_faults_major 34 : mem_faults_minor 3773
-    report:        io_fsin 6704 : io_fsout 8 : io_sockin 0 : io_sockout 0 : io_signals 0
+    report:        time_real 0.27 : time_user 0.03 : time_sys 0.18
+    report:        mem_avg 0 : mem_max 4672 : mem_faults_major 32 : mem_faults_minor 3783
+    report:        io_fsin 6640 : io_fsout 8 : io_sockin 0 : io_sockout 0 : io_signals 0
     report:        exit: 0
     report:    10-service_stop.sh :
-    report:        time_real 0.56 : time_user 0.03 : time_sys 0.38
-    report:        mem_avg 0 : mem_max 4608 : mem_faults_major 126 : mem_faults_minor 5233
-    report:        io_fsin 25776 : io_fsout 8 : io_sockin 0 : io_sockout 0 : io_signals 0
+    report:        time_real 0.58 : time_user 0.03 : time_sys 0.41
+    report:        mem_avg 0 : mem_max 4960 : mem_faults_major 122 : mem_faults_minor 5462
+    report:        io_fsin 25656 : io_fsout 8 : io_sockin 0 : io_sockout 0 : io_signals 0
     report:        exit: 1
     report: testmodule-1.0: fetch
-    report:    time_real 2.41 : time_user 0.05 : time_sys 0.15
-    report:    mem_avg 0 : mem_max 11152 : mem_faults_major 0 : mem_faults_minor 2839
+    report:    time_real 2.72 : time_user 0.06 : time_sys 0.15
+    report:    mem_avg 0 : mem_max 11152 : mem_faults_major 0 : mem_faults_minor 2996
     report:    io_fsin 0 : io_fsout 24 : io_sockin 0 : io_sockout 0 : io_signals 0
     report:    exit: 0
 
