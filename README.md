@@ -1,3 +1,9 @@
+Read the Wiki
+=====
+
+This README is only a bare introduction. Please read the wiki at https://github.com/akesterson/disco/wiki
+for more complete documentation.
+
 disco
 =====
 
