@@ -15,67 +15,19 @@ CREATED=0
 DELETED=0
 MODIFIED=0
 
-rsync --checksum --times --perms --owner --group -ani ./scratchfs/ ./rootfs/ |\
-    grep -v ".unionfs.*/$" |\
-    sed s/"\.\/scratchfs"/""/ |\
-    sed s/"\.unionfs\/"/""/ |\
-    grep -v "./$" |\
-    sed s/"^[<>ch\.*]d"/"File: directory: "/ |\
-    sed s/"^[<>ch\.*]f"/"File: file: "/ |\
-    sed s/"^[<>ch\.*]L"/"File: symlink: "/ |\
-    sed s/"^[<>ch\.*]D"/"File: device: "/ |\
-    sed s/"^[<>ch\.*]S"/"File: special: "/ |\
-    sed s/": \([\.cstpoguax+]*\) \(.*\)$"/": \2 : \1"/ |\
-    sed s/"+++++++++$"/"Created"/ |\
-    sed s/" [\.cstpoguax]*$"/" Modified"/ |\
-    sed s/"_HIDDEN~ : Created"/" : Deleted"/ |\
-    sed s/"^\(.*\)\$"/"info: \1"/g |\
+rsync --checksum --times --perms --owner --group -ani ./scratchfs/ ./rootfs/ --out-format "info: File: %i : %f : mode='%B', size='%l', mtime='%M'" |\
+    sed -e s/"scratchfs"/""/ \
+        -e s/"\.unionfs\/"/""/ \
+        -e s/"info: File: >f+++++++++ : \(\/.*\)_HIDDEN~ : mode="/"info: File: *_deleted__ : \1 : mode="/|\
 while read LINE
-do
-    FNAME=$(echo $LINE | cut -d : -f 4 | sed s/"^ *"/""/ | sed s/" *$"/""/)
-
-    # ----- File modification/creation data
-    MODSTR=""
-    MD5_NEW=$(md5sum ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null| cut -d " " -f 1)
-    MD5_OLD=$(md5sum /${FNAME} 2>/dev/null| cut -d " " -f 1)
-    if [ "$MD5_NEW" != "$MD5_OLD" ]; then
-	MODSTR="$MODSTR md5=[$MD5_OLD => $MD5_NEW]"
-    fi
-    PERMS_NEW=$(stat --format "%G:%U %a" ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null)
-    PERMS_OLD=$(stat --format "%G:%U %a" /${FNAME} 2>/dev/null)
-    if [ "$PERMS_NEW" != "$PERMS_OLD" ]; then
-	MODSTR="$MODSTR perms=[$PERMS_OLD => $PERMS_NEW]"
-    fi
-    SELINUX_NEW=$(stat --format "%C" ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null)
-    SELINUX_OLD=$(stat --format "%C" /${FNAME} 2>/dev/null)
-    if [ "$SELINUX_NEW" != "$SELINUX_OLD" ]; then
-	MODSTR="$MODSTR selinux=[$SELINUX_OLD => $SELINUX_NEW]"
-    fi
-    TYPE_NEW=$(stat --format "%F" ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null)
-    TYPE_OLD=$(stat --format "%F" /${FNAME} 2>/dev/null)
-    if [ "$TYPE_NEW" != "$TYPE_OLD" ]; then
-	MODSTR="$MODSTR type=[$TYPE_OLD => $TYPE_NEW]"
-    fi
-    RAWMODE_NEW=$(stat --format "%f" ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null)
-    RAWMODE_OLD=$(stat --format "%f" /${FNAME} 2>/dev/null)
-    if [ "$RAWMODE_NEW" != "$RAWMODE_OLD" ]; then
-	MODSTR="$MODSTR mode=[$RAWMODE_OLD => $RAWMODE_NEW]"
-    fi
-    DEVICE_NEW=$(stat --format "%D" ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null)
-    DEVICE_OLD=$(stat --format "%D" /${FNAME} 2>/dev/null)
-    if [ "$DEVICE_NEW" != "$DEVICE_OLD" ]; then
-	MODSTR="$MODSTR device=[$DEVICE_OLD => $DEVICE_NEW]"
-    fi
+do 
+    FNAME=$(echo $LINE | cut -d : -f 4 | sed s/"^ *"/""/ | sed s/" *$"/""/)    
+    MD5_NEW=$(md5sum ${DISCOROOT}/scratchfs${FNAME} 2>/dev/null| cut -d " " -f 1)
+    STAT_NEW=$(stat --format "owner='%G:%U', selinux='%C', md5='${MD5_NEW}'" ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null)
     if [ ! -d /${FNAME} ] && [ ! -d ${DISCOROOT}/scratchfs/${FNAME} ]; then 
 	diff -N /${FNAME} ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null > /tmp/$$.diff
     fi
-
-    # ------
-
-    echo $LINE |\
-        sed -e s/"Created$"/"Created : type=[${TYPE_NEW}] device=[${DEVICE_NEW}] mode=[${RAWMODE_NEW}] selinux=[${SELINUX_NEW}] md5=[${MD5_NEW}] perms=[${PERMS_NEW}]"/ |\
-        sed -e s/"Modified$"/"Modified :${MODSTR}"/ |\
-        sed s/"^\([a-z]*\): File: \([a-z]*\): "/"\1: File: \2: \/"/
+    echo "${LINE}, ${STAT_NEW}"
     if [ -f /tmp/$$.diff ]; then
 	cat /tmp/$$.diff
     fi
