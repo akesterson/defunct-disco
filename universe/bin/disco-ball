@@ -129,12 +129,14 @@ function spin() {
     /usr/bin/time -f "$TIME" -o /var/disco/reports/${module}/diff disco-fs-diff
     if [ "$NOOP" == "" ]; then
 	# Now for the real rsync back home
-	rsync -aWH /var/disco/testfs/real/scratchfs/. /
 	cd /var/disco/testfs/real/scratchfs/.unionfs
-	for file in $(find . -iname "_HIDDEN~" -type f); 
+	for file in $(find . -iname "*_HIDDEN~" | sed -e s/"^\."/""/g -e s/"_HIDDEN~$"/""/g); 
 	do 
 	    rm -rf /${file}
 	done
+	cd ..
+	rm -rf ./.unionfs
+	rsync -aWH /var/disco/testfs/real/scratchfs/. /
     fi
     rm -rf /var/disco/testfs/noop/scratchfs/*
     rm -rf /var/disco/testfs/real/scratchfs/*
