@@ -8,7 +8,7 @@ fi
 
 mount | grep $DISCOROOT >/dev/null 2>&1
 if [ $? -ne 0 ]; then
-    ./disco-fs-mount || exit 1
+    echo "disco filesystem is not mounted; please mount it and try again."
 fi
 
 # Strip out any shebang and put the script in the root

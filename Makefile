@@ -14,6 +14,7 @@ install:
 	$(INSTALL_CMD) ./client/bin/disco-fs-diff $(EXEC_PREFIX)/disco-fs-diff
 	$(INSTALL_CMD) ./client/bin/disco-sh-exec $(EXEC_PREFIX)/disco-sh-exec
 	$(INSTALL_CMD) ./client/bin/disco-sh-shell $(EXEC_PREFIX)/disco-sh-shell
+	$(INSTALL_CMD) ./client/bin/disco-shutup $(EXEC_PREFIX)/disco-shutup
 	$(INSTALL_CMD) ./client/bin/disco $(EXEC_PREFIX)/disco
 	$(INSTALL_CMD) ./universe/bin/disco-ball $(EXEC_PREFIX)/disco-ball
 	$(INSTALL_CMD) ./universe/bin/disco-param $(EXEC_PREFIX)/disco-param

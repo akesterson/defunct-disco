@@ -23,7 +23,7 @@ while read LINE
 do 
     FNAME=$(echo $LINE | cut -d : -f 4 | sed s/"^ *"/""/ | sed s/" *$"/""/)    
     MD5_NEW=$(md5sum ${DISCOROOT}/scratchfs${FNAME} 2>/dev/null| cut -d " " -f 1)
-    STAT_NEW=$(stat --format "owner='%G:%U', selinux='%C', md5='${MD5_NEW}'" ${DISCOROOT}/scratchfs/${FNAME} 2>/dev/null)
+    STAT_NEW=$(chroot ${DISCOROOT}/chroot stat --format "owner='%G:%U', selinux='%C', md5='${MD5_NEW}'" /${FNAME} 2>/dev/null)
     if [ ! -d ${FNAME} ] && [ ! -d ${DISCOROOT}/scratchfs${FNAME} ]; then 
 	diff -N ${FNAME} ${DISCOROOT}/scratchfs${FNAME} 2>/dev/null > /tmp/$$.diff
     fi

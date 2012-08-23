@@ -18,7 +18,12 @@ function colorize() {
 }
 
 function report() {
-    for module in $(ls /var/disco/reports/)
+    if [ "$1" != "" ]; then
+	MODULELIST="$1"
+    else
+	MODULELIST=$(ls /var/disco/reports/)
+    fi
+    for module in $MODULELIST;
     do
 	BASE="report: $module:"
 	for file in $(ls /var/disco/reports/${module})
@@ -51,18 +56,7 @@ function dance() {
 
     for module in $(cat /tmp/$$.tsort | tsort | tac)
     do
-	echo "info: Processing ${module}"
-	NOOP="true" disco-ball template $module
-	NOOP=true /usr/bin/time -f "$TIME" -o /var/disco/reports/${module}/diff disco-fs-diff
-	if [ "$NOOP" == "" ]; then
-	    rsync -aWH /var/disco/testfs/noop/scratchfs/. /.
-	fi
-	NOOP="$NOOP" disco-ball exec $module
-	RETVAL=$?
-	rm -rf /var/disco/testfs/noop/scratchfs/*
-	if [ $RETVAL -ne 0 ]; then
-	    echo "error: Failed to apply $module."
-	fi
+	disco-ball spin ${module}
     done
 
     if [ "$REPORT" != "" ]; then

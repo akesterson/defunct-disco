@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DISCOCFG=/etc/disco
+
 if [ "$NOOP" != "" ]; then
     DISCOROOT=/var/disco/testfs/noop
 else
