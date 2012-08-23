@@ -1,0 +1,36 @@
+#!/bin/bash
+
+DEL=""
+ADD=""
+MOD=""
+GETENT=""
+
+HOSTNAME=$(hostname)
+
+if [ "$1" == "user" ]; then
+    GETENT="passwd"
+    DEL="userdel"
+    ADD="useradd"
+    MOD="usermod"
+elif [ "$1" == "group" ]; then
+    GETENT="group"
+    DEL="groupdel"
+    ADD="groupadd"
+    MOD="groupmod"
+fi
+
+NAME="$2"
+op="$3"
+
+PARAMS=$(disco-param get ${HOSTNAME}/users/${op}/${NAME})
+getent ${GETENT} | grep "^${NAME}" 2>&1 | disco-shutup
+RETVAL=$?
+if [ $RETVAL -eq 0 ] && [ "$op" == "absent" ]; then
+    ${DEL} ${NAME}
+elif [ $RETVAL -eq 0 ]; then
+    ${MOD} ${PARAMS} ${NAME}
+elif [ "$op" == "present" ]; then
+    ${ADD} ${PARAMS} ${NAME}
+fi
+
+exit $?

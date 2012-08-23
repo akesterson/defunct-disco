@@ -11,17 +11,15 @@
 
 HOSTNAME=$(hostname)
 
-for username in $(disco-param keys ${HOSTNAME}/users)
+RETVAL=0
+
+for op in present absent
 do
-    NAME=$username
-    PARAMS=$(disco-param get ${HOSTNAME}/users/${NAME})
-    getent passwd | grep "^${NAME}" 2>&1 | disco-shutup
-    RETVAL=$?
-    if [ $RETVAL -eq 0 ] && [ "$PARAMS" == "" ]; then
-	userdel ${NAME}
-    elif [ $RETVAL -ne 0 ]; then
-	usermod ${PARAMS} ${NAME}
-    elif [ "$PARAMS" != "" ]; then
-	useradd ${PARAMS} ${NAME}
-    fi
+    for username in $(disco-param keys ${HOSTNAME}/users/${op})
+    do
+	disco-linux-ents user $username $op
+	RETVAL=$(expr $RETVAL + $?)
+    done
 done
+
+exit $RETVAL
