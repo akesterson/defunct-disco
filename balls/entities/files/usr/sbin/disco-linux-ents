@@ -22,8 +22,10 @@ fi
 NAME="$2"
 op="$3"
 
-PARAMS=$(disco-param get ${HOSTNAME}/users/${op}/${NAME})
-getent ${GETENT} | grep "^${NAME}" 2>&1 | disco-shutup
+set -x
+
+PARAMS=$(disco-param get ${HOSTNAME}/${GETENT}s/${op}/${NAME})
+BLAH=$(getent ${GETENT} | grep "^${NAME}" 2>&1)
 RETVAL=$?
 if [ $RETVAL -eq 0 ] && [ "$op" == "absent" ]; then
     ${DEL} ${NAME}

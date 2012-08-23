@@ -130,6 +130,11 @@ function spin() {
     if [ "$NOOP" == "" ]; then
 	# Now for the real rsync back home
 	rsync -aWH /var/disco/testfs/real/scratchfs/. /
+	cd /var/disco/testfs/real/scratchfs/.unionfs
+	for file in $(find . -iname "_HIDDEN~" -type f); 
+	do 
+	    rm -rf /${file}
+	done
     fi
     rm -rf /var/disco/testfs/noop/scratchfs/*
     rm -rf /var/disco/testfs/real/scratchfs/*
