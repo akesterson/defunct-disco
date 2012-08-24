@@ -31,30 +31,75 @@ function fetch_params() {
     return $RETVAL
 }
 
+function params() {
+    if [ "$1" == "" ]; then
+	echo "Must pass a module name to fetch data for"
+	return 1
+    fi
+    mkdir -p ${DISCOROOT}/reports/$1
+    rm -f ${DISCOROOT}/reports/${1}/params
+    /usr/bin/time -f "$TIME" -o ${DISCOROOT}/reports/$1/params \
+	rsync -aWH ${STORAGE}/parameters/* ${DISCOROOT}/parameters/$(hostname)/
+    return $?
+}
+
 function fetch() {
     if [ "$1" == "" ]; then
-	echo "Must pass a module name to fetch"
+	echo "Must pass a module name to fetch data for"
 	return 1
+    fi
+    SRC="${SERVERURI}::${1}"
+    if [ "$2" != "" ]; then
+	SRC="$2"
     fi
     if [ "$NOOP" == "" ]; then
 	DEST=/var/disco/testfs/real/scratchfs
     else
 	DEST=/var/disco/testfs/noop/scratchfs
     fi
+
     rm -rf ${STORAGE}/${1}
     mkdir -p ${DISCOROOT}/reports/$1
     rm -f ${DISCOROOT}/reports/${1}/fetch
     # Sometimes there's some shell escaping voodoo and rsync doesn't like the command args some people will pass it straight on
     # the command line; so we wrap it in a little bash script, and everyone's happy.
-    echo ${RSYNC} ${SERVERURI}::${1}/files/* ${DEST} > /tmp/$$.sh
-    echo ${RSYNC} --delete ${SERVERURI}::${1}/requires ${SERVERURI}::${1}/scripts ${SERVERURI}::${1}/parameters ${SERVERURI}::${1}/templates ${STORAGE}/${1} >> /tmp/$$.sh
+    echo ${RSYNC} --delete ${SRC}/requires ${SRC}/scripts ${SRC}/parameters ${SRC}/templates ${STORAGE}/${1} > /tmp/$$.sh
     echo 'exit $?' >> /tmp/$$.sh
-    /usr/bin/time -f "$TIME" -o ${DISCOROOT}/reports/${1}/fetch /tmp/$$.sh 2>/tmp/$$.errors | sed s/"^"/"info: ${1}: "/g
+    /usr/bin/time -f "$TIME" -o ${DISCOROOT}/reports/${1}/fetch /bin/bash /tmp/$$.sh 2>/tmp/$$.errors | sed s/"^"/"info: ${1}: "/g
     cat /tmp/$$.errors | grep -v "some files/attrs were not transferred" | sed s/"^"/"error: ${1}: "/g
     RETVAL=$?
     rm -f /tmp/$$.sh
     return $RETVAL
 }
+
+function files() {
+    if [ "$1" == "" ]; then
+	echo "Must pass a module name to retrieve files for"
+	return 1
+    fi
+    SRC="${SERVERURI}::${1}"
+    if [ "$2" != "" ]; then
+	SRC="$2"
+    fi
+    if [ "$NOOP" == "" ]; then
+	DEST=/var/disco/testfs/real/scratchfs
+    else
+	DEST=/var/disco/testfs/noop/scratchfs
+    fi
+
+    mkdir -p ${DISCOROOT}/reports/$1
+    rm -f ${DISCOROOT}/reports/${1}/files
+    # Sometimes there's some shell escaping voodoo and rsync doesn't like the command args some people will pass it straight on
+    # the command line; so we wrap it in a little bash script, and everyone's happy.
+    echo ${RSYNC} ${SRC}/files/* ${DEST} > /tmp/$$.sh
+    echo 'exit $?' >> /tmp/$$.sh
+    /usr/bin/time -f "$TIME" -o ${DISCOROOT}/reports/${1}/files /bin/bash /tmp/$$.sh 2>/tmp/$$.errors | sed s/"^"/"info: ${1}: "/g
+    cat /tmp/$$.errors | grep -v "some files/attrs were not transferred" | sed s/"^"/"error: ${1}: "/g
+    RETVAL=$?
+    rm -f /tmp/$$.sh
+    return $RETVAL
+}
+
 
 function requires()
 {
@@ -62,7 +107,10 @@ function requires()
 	echo "Must pass a module name for requirements"
 	return 1
     fi
-    cat ${STORAGE}/${1}/requires | sed s/"^"/"${1} "/g
+    cat ${STORAGE}/${1}/requires 2>/dev/null |\
+        grep -v "^#" |\
+        sed -e s/"^ *after"/"${1} "/g \
+            -e s/"^ *before *\([a-zA-Z0-9\-_\.]*\)"/"\1 ${1}"/g
 }
 
 function exec() {
@@ -117,6 +165,7 @@ function template() {
 function spin() {
     module=$1
     echo "info: Processing ${module}"
+    NOOP="true" files $module
     NOOP="true" template $module
     if [ "$NOOP" == "" ]; then
 	# We rsync all the configs and files into the 'real' scratchfs so that we can
@@ -146,4 +195,4 @@ function spin() {
     return $?
 }
 
-$1 $2
+$1 "$2" "$3" "$4" "$5" "$6" "$7" "$8"

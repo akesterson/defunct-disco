@@ -47,22 +47,39 @@ function dance() {
 	exit 1
     fi
 
-    # Create the toposort of all the modules
-    for module in $(disco-param keys $(hostname)/modules)
-    do
-	NOOP="true" disco-ball fetch $module
-	disco-ball requires $module >> /tmp/$$.tsort
+    # Create the toposort of all the modules and fetch all their metadata
+    # This also includes fetching modules that aren't explicitly called out in
+    # our class list, but are required by 'before' statements in the requires files.
+    rm -f /tmp/$$.tsort
+    disco-param keys $(hostname)/modules | tac > /tmp/$$.modules.prev
+    NEWBALLS=$(cat /tmp/$$.modules.prev)
+    while [ "$NEWBALLS" != "" ]; do
+	for module in $NEWBALLS
+	do
+	    NOOP="true" disco-ball fetch $module
+	    disco-ball requires $module >> /tmp/$$.tsort
+	    cat /tmp/$$.tsort | tsort | tac > /tmp/$$.modules.new
+	done
+	NEWBALLS=$(diff /tmp/$$.modules.prev /tmp/$$.modules.new | grep "^> " | cut -d " " -f 2-)
+	cp /tmp/$$.modules.new /tmp/$$.modules.prev
+	if [ "$NEWBALLS" != "" ]; then
+	    echo "info: Discovered dependency : ${module} : $(echo -n ${NEWBALLS} | sed s/' '/', '/g)"
+	fi
     done
 
-    for module in $(cat /tmp/$$.tsort | tsort | tac)
-    do
-	disco-ball spin ${module}
-    done
+    echo "info: Ready to dance :"
+    cat /tmp/$$.tsort | tsort | tac | sed s/"^"/"info:        "/g
+
+#    for module in $(cat /tmp/$$.tsort | tsort | tac)
+#    do
+#	disco-ball spin ${module}
+#    done
 
     if [ "$REPORT" != "" ]; then
 	report
     fi
 
+    #rm -f /tmp/$$.*
 }
 
 $1 "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9"
